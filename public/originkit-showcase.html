@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Originkit Component Showcase &amp; Shader Laboratory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,300;400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #06080d;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 13, 20, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #38bdf8;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 300;
+      font-size: 1.6rem;
+      margin-top: 0.2rem;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.4);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .tab-btn.active {
+      background: #f59e0b;
+      color: #000;
+      font-weight: 700;
+      border-color: #f59e0b;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .showcase-card {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(13, 16, 25, 0.7);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      margin-bottom: 2rem;
+    }
+    .card-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    .canvas-wrap {
+      width: 100%;
+      height: 520px;
+      position: relative;
+      background: #000;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls-bar {
+      padding: 1.2rem 1.5rem;
+      background: rgba(5, 7, 12, 0.9);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .control-item label {
+      color: #64748b;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+    }
+    input[type=range] {
+      accent-color: #f59e0b;
+      cursor: pointer;
+    }
+    .button-arena {
+      padding: 4rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.5rem;
+      background: radial-gradient(circle at center, #111625 0%, #06080d 100%);
+    }
+    /* Native Canvas Starfield Button simulation */
+    .star-btn-wrap {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .star-btn {
+      position: relative;
+      padding: 14px 32px;
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 9999px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      overflow: hidden;
+      box-shadow: 0 0 24px rgba(252, 115, 28, 0.3);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      user-select: none;
+    }
+    .star-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 36px rgba(252, 115, 28, 0.5);
+    }
+    .star-btn:active {
+      transform: scale(0.97);
+    }
+    .star-btn-beam {
+      position: absolute;
+      inset: -2px;
+      border-radius: 9999px;
+      background: conic-gradient(from var(--angle, 0deg), transparent 70%, #fc731c 95%, transparent 100%);
+      z-index: -1;
+      animation: rotateBeam 2.5s linear infinite;
+    }
+    @keyframes rotateBeam {
+      from { --angle: 0deg; }
+      to { --angle: 360deg; }
+    }
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    .note-box {
+      border-radius: 12px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.05);
+      padding: 1.2rem 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>Originkit Shader &amp; Creative Component Laboratory</span>
+      </div>
+      <h1>Standalone Interactive Showcase</h1>
+    </div>
+    <div>
+      <a href="/" style="color:#38bdf8; text-decoration:none; font-family:'JetBrains Mono', monospace; font-size:0.8rem;">
+        ← Return to Stratosphere Home
+      </a>
+    </div>
+  </header>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('horizon')">🌅 Emberglow Horizon (Sunset)</button>
+    <button class="tab-btn" onclick="switchTab('button')">✦ Starfield Button</button>
+    <button class="tab-btn" onclick="switchTab('theory')">📖 Horizon Optical Architecture</button>
+  </div>
+
+  <div class="container">
+    <!-- SECTION 1: EMBERGLOW HORIZON -->
+    <div id="tab-horizon" class="tab-content">
+      <div class="showcase-card">
+        <div class="card-header">
+          <span style="color:#f59e0b;">SHADER: EMBERGLOW HORIZON (AMBERVESPER)</span>
+          <span style="color:#64748b;">WEBGL2 // REALTIME LOW-ANGLE SUNSET</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="horizonCanvas"></canvas>
+        </div>
+        <div class="controls-bar">
+          <div class="control-item">
+            <label>Sun Horizontal Position (<span id="sunVal">55</span>%)</label>
+            <input type="range" id="sunX" min="10" max="90" value="55" oninput="updateHorizon()" />
+          </div>
+          <div class="control-item">
+            <label>Horizon Crest Line (<span id="horizVal">80</span>%)</label>
+            <input type="range" id="horizY" min="50" max="95" value="80" oninput="updateHorizon()" />
+          </div>
+          <div class="control-item">
+            <label>Heatwave Shimmer (<span id="shimmerVal">15</span>)</label>
+            <input type="range" id="shimmer" min="0" max="40" value="15" oninput="updateHorizon()" />
+          </div>
+          <div style="margin-left:auto; color:#94a3b8; font-size:0.7rem;">
+            * Interactive mouse ripples enabled across canvas
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: STARFIELD BUTTON -->
+    <div id="tab-button" class="tab-content" style="display:none;">
+      <div class="showcase-card">
+        <div class="card-header">
+          <span style="color:#f59e0b;">PRIMITIVE: STARFIELD BUTTON</span>
+          <span style="color:#64748b;">CANVAS PARTICLES + RADIANT BEAM SWEEP</span>
+        </div>
+        <div class="button-arena">
+          <div class="star-btn-wrap" onclick="clickStarBtn()">
+            <div class="star-btn-beam"></div>
+            <div class="star-btn">
+              <span style="color:#fc731c;">⚡</span>
+              <span id="starBtnText">INITIATE STRATOSPHERE BRIEFING</span>
+              <span style="color:rgba(255,255,255,0.4);">→</span>
+            </div>
+          </div>
+
+          <div style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; color:#94a3b8;">
+            Button Clicks: <span id="clickDisplay" style="color:#f59e0b; font-weight:bold;">0</span>
+          </div>
+
+          <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
+            <div class="star-btn" style="box-shadow:0 0 20px rgba(56,189,248,0.4); border-color:rgba(56,189,248,0.4);">
+              <span style="color:#38bdf8;">✦</span>
+              <span>ORBIT SIGNAL</span>
+              <span>→</span>
+            </div>
+            <div class="star-btn" style="box-shadow:0 0 20px rgba(168,85,247,0.4); border-color:rgba(168,85,247,0.4);">
+              <span style="color:#a855f7;">◎</span>
+              <span>NEBULA DUSK</span>
+              <span>→</span>
+            </div>
+            <div class="star-btn" style="box-shadow:0 0 20px rgba(16,185,129,0.4); border-color:rgba(16,185,129,0.4);">
+              <span style="color:#10b981;">⚡</span>
+              <span>FIELD TELEMETRY</span>
+              <span>→</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: ARCHITECTURAL THEORY -->
+    <div id="tab-theory" class="tab-content" style="display:none;">
+      <div class="note-box" style="margin-bottom:1.5rem;">
+        <h3 style="color:#f59e0b; font-size:0.9rem; margin-bottom:0.5rem;">
+          ✦ Why the Sunset Horizon in Emberglow Horizon Feels So Natural:
+        </h3>
+        <p style="margin-bottom:0.8rem;">
+          1. <strong>Worm&apos;s-Eye Perspective (PITCH = 114°, Horizon = 80%):</strong><br>
+          In typical sky domes, the sun is rendered high overhead with equal atmospheric scattering all around. But in real landscape photography (like your daisy prairie reference), the camera sits low in the grass looking across the rim of the earth. The horizon sits in the lower third (~80% down the screen).
+        </p>
+        <p style="margin-bottom:0.8rem;">
+          2. <strong>Atmospheric Optical Banding:</strong><br>
+          At sunset, Rayleigh scattering turns the zenith deep navy (#0B1424), grading through slate blue (#1E537C), mauve (#A69AA8), and burning red-orange (#FF1C00 / #F7974F), with a blazing white-hot sun core (#FFE35A) right at the ground line.
+        </p>
+        <p>
+          3. <strong>Pollen AI Spectral Dispersion:</strong><br>
+          Notice how the flowers in Pollen AI have rainbow chromatic aberration on the petal tips. That same optical effect is simulated in Glimmer Vale through radial RGB offsets, giving that dreamy, glowing aura!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(id) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + id).style.display = 'block';
+      event.target.classList.add('active');
+      if (id === 'horizon') {
+        resizeCanvas();
+      }
+    }
+
+    let clicks = 0;
+    function clickStarBtn() {
+      clicks++;
+      document.getElementById('clickDisplay').innerText = clicks;
+    }
+
+    // WebGL2 Horizon Canvas Engine
+    const canvas = document.getElementById('horizonCanvas');
+    const gl = canvas.getContext('webgl2');
+
+    const vsSource = `#version 300 es
+    in vec2 aPos;
+    void main() {
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }`;
+
+    const fsSource = `#version 300 es
+    precision highp float;
+    out vec4 outColor;
+    uniform vec2 uRes;
+    uniform float uTime;
+    uniform float uSunX;
+    uniform float uHorizon;
+    uniform float uShimmer;
+    uniform vec2 uMouse;
+
+    float hash(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / uRes;
+      float aspect = uRes.x / uRes.y;
+      
+      // Horizon line in 0..1 uv space
+      float horiz = 1.0 - (uHorizon / 100.0);
+      
+      // Sun position
+      vec2 sunPos = vec2(uSunX / 100.0, horiz + 0.02);
+      vec2 p = uv - sunPos;
+      p.x *= aspect;
+      
+      float dist = length(p);
+      
+      // Interactive mouse ripple
+      vec2 m = uMouse / uRes;
+      vec2 mp = uv - m;
+      mp.x *= aspect;
+      float mdist = length(mp);
+      float ripple = sin(mdist * 30.0 - uTime * 4.0) * exp(-mdist * 4.0) * 0.03;
+      
+      float shimmerVal = sin(uv.y * 120.0 + uTime * 3.0) * (uShimmer / 1000.0) * (1.0 - smoothstep(horiz, horiz + 0.25, uv.y));
+      
+      // Sky atmospheric vertical gradient
+      vec3 skyTop = vec3(0.043, 0.078, 0.141); // #0b1424
+      vec3 slate = vec3(0.118, 0.325, 0.486);  // #1e537c
+      vec3 mauve = vec3(0.651, 0.604, 0.659);  // #a69aa8
+      vec3 peach = vec3(0.937, 0.647, 0.549);  // #efa58c
+      vec3 orange = vec3(0.969, 0.592, 0.310); // #f7974f
+      vec3 red = vec3(1.0, 0.11, 0.0);        // #ff1c00
+      
+      vec3 col = skyTop;
+      col = mix(col, slate, smoothstep(horiz + 0.6, horiz + 0.35, uv.y));
+      col = mix(col, mauve, smoothstep(horiz + 0.35, horiz + 0.18, uv.y));
+      col = mix(col, peach, smoothstep(horiz + 0.18, horiz + 0.06, uv.y));
+      col = mix(col, orange, smoothstep(horiz + 0.08, horiz + 0.01, uv.y));
+      col = mix(col, red, smoothstep(horiz + 0.02, horiz - 0.04, uv.y));
+      
+      // Sun disc & intense forward scattering
+      float sunGlow = exp(-dist * 4.0) * 0.9 + exp(-dist * 14.0) * 1.5;
+      float sunDisc = 1.0 - smoothstep(0.04, 0.045, dist);
+      vec3 sunColor = vec3(1.0, 0.89, 0.35); // #ffe35a
+      
+      col += sunColor * sunDisc * 2.0;
+      col += orange * sunGlow * 1.2;
+      
+      // Ground / Tree ridge silhouette
+      float treeNoise = sin(uv.x * 40.0) * 0.01 + sin(uv.x * 120.0) * 0.005;
+      float ground = horiz + treeNoise + shimmerVal + ripple;
+      if (uv.y < ground) {
+        col = mix(vec3(0.01, 0.01, 0.015), orange * 0.15, smoothstep(0.0, ground, uv.y));
+      }
+      
+      outColor = vec4(col, 1.0);
+    }`;
+
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      return shader;
+    }
+
+    const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+
+    const posBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1, -1,
+       1, -1,
+      -1,  1,
+      -1,  1,
+       1, -1,
+       1,  1
+    ]), gl.STATIC_DRAW);
+
+    const aPos = gl.getAttribLocation(program, 'aPos');
+    const uRes = gl.getUniformLocation(program, 'uRes');
+    const uTime = gl.getUniformLocation(program, 'uTime');
+    const uSunX = gl.getUniformLocation(program, 'uSunX');
+    const uHorizon = gl.getUniformLocation(program, 'uHorizon');
+    const uShimmer = gl.getUniformLocation(program, 'uShimmer');
+    const uMouse = gl.getUniformLocation(program, 'uMouse');
+
+    let mouseX = 300, mouseY = 200;
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = rect.height - (e.clientY - rect.top);
+    });
+
+    function resizeCanvas() {
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let startTime = performance.now();
+    function render() {
+      resizeCanvas();
+      const now = (performance.now() - startTime) / 1000;
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uTime, now);
+      gl.uniform1f(uSunX, parseFloat(document.getElementById('sunX').value));
+      gl.uniform1f(uHorizon, parseFloat(document.getElementById('horizY').value));
+      gl.uniform1f(uShimmer, parseFloat(document.getElementById('shimmer').value));
+      gl.uniform2f(uMouse, mouseX, mouseY);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+
+    function updateHorizon() {
+      document.getElementById('sunVal').innerText = document.getElementById('sunX').value;
+      document.getElementById('horizVal').innerText = document.getElementById('horizY').value;
+      document.getElementById('shimmerVal').innerText = document.getElementById('shimmer').value;
+    }
+  </script>
+</body>
+</html>
