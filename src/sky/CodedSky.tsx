@@ -8,7 +8,6 @@
  * lighting with no re-render), and mounts exactly one renderer:
  *
  *   variant="vector"      precise gradients, crisp SVG clouds
- *   variant="dither"      risograph raster, Bayer-quantized ink
  *   variant="volumetric"  WebGL ray-marched cumulus, photographic  ← default
  *                         (falls back to feathered CSS plates without WebGL2)
  *
@@ -22,11 +21,10 @@ import { applyLight, getLight } from "@/lib/lighting";
 import { useSkyTime } from "@/lib/useTimeOfDay";
 import { PhotoSky } from "./PhotoSky";
 import { VectorSky } from "./VectorSky";
-import { DitherSky } from "./DitherSky";
 
-export type SkyVariant = "vector" | "dither" | "volumetric";
+export type SkyVariant = "vector" | "volumetric";
 
-export const SKY_VARIANTS: SkyVariant[] = ["volumetric", "dither", "vector"];
+export const SKY_VARIANTS: SkyVariant[] = ["volumetric", "vector"];
 
 export interface CodedSkyProps {
   variant?: SkyVariant;
@@ -60,7 +58,6 @@ export function CodedSky({ variant = "volumetric", className = "", still = false
       <div data-sky-slot="canvas" className="fill">
         {variant === "volumetric" && <PhotoSky light={light} still={still} />}
         {variant === "vector" && <VectorSky light={light} />}
-        {variant === "dither" && <DitherSky light={light} />}
       </div>
 
       {/* Slot seam: an optional video/photo cutout would mount here and be

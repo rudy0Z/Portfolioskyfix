@@ -1,0 +1,16 @@
+{
+  "center": {
+    "lat": 34.0465,
+    "lon": -118.872
+  },
+  "widthMeters": 6000,
+  "heightMeters": 3250,
+  "cols": 400,
+  "rows": 220,
+  "sources": {
+    "dem": "AWS Terrain Tiles (Terrarium z14; USGS 3DEP)",
+    "roads": "© OpenStreetMap contributors (ODbL)",
+    "buildings": "© OpenStreetMap contributors (ODbL)",
+    "vegetation": "ESA WorldCover 10 m 2021 v200 (CC BY 4.0)"
+  }
+}

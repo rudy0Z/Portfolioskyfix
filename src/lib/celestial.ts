@@ -33,11 +33,12 @@ const SUN_PEAK = 0.52;
 /** Height the moon reaches at midnight — lower, so it never leaves frame. */
 const MOON_PEAK = 0.44;
 /**
- * Where the horizon sits in the framed sky — measured against the island's
- * crown at rest (≈85% of viewport height). A setting sun meets the rim of the
- * land; it does not sink to the bottom edge of the screen.
+ * Where the horizon sits in the framed sky — the meadow's field line, which
+ * the garden lays at ≈56% of the viewport across desktop and phone frames.
+ * A setting disc melts into the ridge and haze right there; it does not keep
+ * sinking behind the field.
  */
-const HORIZON_Y = 0.85;
+const HORIZON_Y = 0.56;
 
 /** Altitude curve: -1 at 00:00, 0 at 06:00/18:00, +1 at 12:00. */
 export function solarAltitude(t: number): number {
@@ -61,7 +62,9 @@ function body(altitude: number, x: number, peak = SUN_PEAK): Body {
   const arcY = HORIZON_Y - Math.max(0, altitude) * peak;
   // Below the horizon the disc keeps sinking past the land line.
   const y = altitude >= 0 ? arcY : HORIZON_Y + Math.abs(altitude) * 0.14;
-  const opacity = smoothstep(-0.06, 0.18, altitude);
+  // The disc melts into the ridge and haze just before the field line, so it
+  // never reads as cut off by the meadow's rolling edge.
+  const opacity = smoothstep(-0.09, 0.03, altitude);
   return { x: clamp(x, -0.15, 1.15), y, altitude, visible: opacity > 0.01, opacity };
 }
 
@@ -76,14 +79,14 @@ export function sunAt(t: number): Body {
   return body(Math.sign(alt) * Math.pow(Math.abs(alt), 0.72), x);
 }
 
-/** Antiphase moon — but with a small offset so the swap feels organic. */
 /**
- * The moon rises in the east as the sun sets in the west, so it travels the
- * *mirrored* arc (right → left) rather than retracing the sun's path.
+ * Antiphase moon — it owns the sky while the sun is down, rising 18:00-ish and
+ * setting 06:00-ish. It travels the same left-to-right arc as the sun, so the
+ * whole timelapse reads as one consistent east-to-west current.
  */
 export function moonAt(t: number): Body {
   const alt = -solarAltitude(t);
-  const x = 0.92 - arcX(t, 18.5) * 0.84;
+  const x = 0.08 + arcX(t, 18.5) * 0.84;
   return body(alt, x, MOON_PEAK);
 }
 

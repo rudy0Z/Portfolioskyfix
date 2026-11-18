@@ -20,6 +20,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { LightModel } from "@/lib/lighting";
+import { EXIT_LITE, heroClock } from "@/lib/heroClock";
 import { SkyRenderer } from "./webgl/SkyRenderer";
 import { VolumetricSky } from "./VolumetricSky";
 
@@ -73,8 +74,11 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
     // reduced motion: after a change, render a few frames so the temporal
     // accumulation settles, then stop
     let settle = 0;
+    let cadenceFlip = 0;
     const qa = new URLSearchParams(window.location.search).get("skyqa");
     const qaPasses = Number(qa) || 1;
+    // ?lite=sky — bisect flag: disable only the god rays (hero plan §2)
+    const shaftsOff = new URLSearchParams(window.location.search).get("lite") === "sky";
 
     const onLost = (e: Event) => {
       e.preventDefault();
@@ -117,12 +121,28 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
       dirty.current = false;
       renderedPrev = true;
 
-      const lift = Math.min(1, y / (window.innerHeight * 2.4));
+      // Sky lift (hero plan §6.2 — one clock): on the home route the cloud
+      // camera rides the HERO timeline (eased p, exposed by Hero's scroll
+      // rAF), so the deck thickens exactly while the garden dissolves and
+      // holds at 1 for the works handoff. ?lite=exit and every other route
+      // keep the raw-scroll behaviour.
+      const liftRaw = Math.min(1, y / (window.innerHeight * 2.4));
+      const lift = heroClock.active && !EXIT_LITE ? heroClock.lift : liftRaw;
+      // Scroll cadence (hero plan §3.2): the hero exit is the showcase, so
+      // the cloud march runs at full rate while the hero timeline is still
+      // running (p < 1); past it — and on non-home routes inside the old
+      // y-gate — the pass runs every other rendered frame. The ping-pong
+      // history keeps the texture converging between skips (blend 0.45).
+      const inHeroShowcase = heroClock.active
+        ? heroClock.p < 1
+        : y < window.innerHeight * 0.85;
+      cadenceFlip = (cadenceFlip + 1) % 2;
+      const cloudSkip = !inHeroShowcase && !first && cadenceFlip === 0;
       // QA hook: ?skyqa=N renders N accumulation frames up front so headless
       // screenshots (software GL, ~1 fps) show the converged image.
       const passes = first ? qaPasses : 1;
       for (let i = 0; i < passes; i++) {
-        renderer.render(now, { lift, timelapseHours: lapse.current.hours, still: reduced, fast: busy && passes === 1 });
+        renderer.render(now, { lift, timelapseHours: lapse.current.hours, still: reduced, fast: busy && passes === 1, cloudSkip: cloudSkip && passes === 1, shaftsOff });
       }
       if (first) {
         first = false;

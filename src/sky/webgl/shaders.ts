@@ -368,6 +368,73 @@ void main() {
   outColor = mix(hist, cur, uBlend);
 }`;
 
+/* ── sun transmittance (god rays) ─────────────────────────────────────── */
+
+/*
+ * A tiny fixed-size pass (160×96, one texel per sky direction) that marches
+ * the COVERAGE MAP ONLY toward the key light — no shape noise, no light
+ * march, six single-fetch samples (SkySaver's shafts loop). The result is how
+ * open the cloud deck is between a sky direction and the sun; the composite
+ * turns it into light shafts through the apertures. The cloud pass itself is
+ * untouched.
+ */
+export const SHAFT_FRAG = /* glsl */ `#version 300 es
+precision highp float;
+precision highp sampler3D;
+${COMMON}
+uniform sampler3D uNoise;
+uniform float uCamY;
+uniform vec3 uWind;
+uniform vec3 uKeyDir;
+uniform float uCoverage;
+out vec4 outColor;
+
+const float BASE = -0.9;
+const float TOP = 4.4;
+const float MAXD = 42.0;
+
+float coverage(vec3 q) {
+  float w1 = textureLod(uNoise, vec3(q.xz * 0.036, 0.31), 0.0).g;
+  float w2 = textureLod(uNoise, vec3(q.zx * 0.09 + 0.37, 0.77), 0.0).r;
+  return sstep(0.4, 0.78, w1 * 0.7 + w2 * 0.3 + uCoverage - 0.5);
+}
+
+vec3 windPos(vec3 p, float h) {
+  return p + uWind + vec3(h * 0.9, 0.0, h * 0.25);
+}
+
+void main() {
+  vec2 uv = vec2(gl_FragCoord.x / uRes.x, 1.0 - gl_FragCoord.y / uRes.y);
+  vec3 rd = camRay(uv);
+  vec3 ro = vec3(0.0, uCamY, 0.0);
+
+  // enter the deck midway along the view ray (clamped into march range)
+  float t0 = 0.0, t1 = MAXD;
+  if (abs(rd.y) > 1e-5) {
+    float a = (BASE - ro.y) / rd.y;
+    float b = (TOP - ro.y) / rd.y;
+    t0 = max(min(a, b), 0.0);
+    t1 = min(max(a, b), MAXD);
+  }
+  float tMid = clamp((t0 + t1) * 0.5, 0.0, MAXD);
+  vec3 p = ro + rd * tMid;
+
+  // six steps toward the key light through the deck; each sample is one
+  // coverage fetch — open air passes light, deck eats it. SkySaver's trick:
+  // accumulate the RUNNING transmission (mean), not the final product, so a
+  // beam stays readable when only the near deck is open.
+  float T = 1.0;
+  float acc = 0.0;
+  for (int i = 0; i < 6; i++) {
+    vec3 sp = p + uKeyDir * (0.55 + float(i) * 1.1);
+    float h = (sp.y - BASE) / (TOP - BASE);
+    if (h <= 0.0 || h >= 1.0) { acc += T; continue; }
+    T *= 1.0 - coverage(windPos(sp, h)) * 0.72;
+    acc += T;
+  }
+  outColor = vec4(acc / 6.0, 1.0, 1.0, 1.0);
+}`;
+
 /* ── composite ────────────────────────────────────────────────────────── */
 
 export const COMPOSITE_FRAG = /* glsl */ `#version 300 es
@@ -378,6 +445,10 @@ uniform vec2 uCloudRes;
 uniform float uOutScale;
 uniform float uTime;
 uniform float uDpr;
+uniform float uCoverage;
+uniform sampler2D uShafts;   // sun transmittance (SHAFT pass)
+uniform float uShaftAmt;     // 0..1 — night-gated golden/twilight strength
+uniform float uDrift;        // shared cloud-drift scalar (apertures ride it)
 
 uniform vec3 uSunCore;
 uniform vec3 uMoonDir;
@@ -523,6 +594,42 @@ void main() {
 
   // lens glare survives in front of thin cloud
   col += uGlow * glare * uSunVis * (1.0 - a * 0.75) * 0.6;
+
+  /*
+   * God rays — light through the cloud deck's apertures (SkySaver's
+   * technique, ported to the volumetric camera). The transmittance texture
+   * says how open the deck is toward the sun along this sight line; a
+   * continuous aperture field (per-opening life/reach/softness, drifting with
+   * the clouds) breaks the fan into separate soft shafts so nothing repeats;
+   * the night gate in uShaftAmt zeroes the whole term after sunset.
+   */
+  if (uShaftAmt > 0.001) {
+    vec3 rt = normalize(cross(uSunDir, vec3(0.0, 1.0, 0.0)));
+    vec3 upv = cross(rt, uSunDir);
+    float mu = dot(rd, uSunDir);
+    // gnomonic coordinate across the light fan; frequency tuned so the visible
+    // fan carries ~8-10 independent openings (SkySaver's screen-space scale)
+    float denom = max(mu, 0.12);
+    float transverse = dot(rd, rt) / denom;
+    // apertures drift with cloud travel — never a static overlay
+    float aperturePhase = uTime * 0.045 + uDrift * 0.32;
+    float lightField = vnoise(vec2(transverse * 13.0, uDrift * 0.65 + 3.0)) * 0.7
+                     + vnoise(vec2(transverse * 30.0 + 7.0, uDrift * 0.45 + 17.0)) * 0.3;
+    float life = vnoise(vec2(transverse * 9.5 + 41.0, aperturePhase + 11.0));
+    float reach = vnoise(vec2(transverse * 15.0 + 73.0, aperturePhase * 0.73 + 29.0));
+    float softness = vnoise(vec2(transverse * 21.0, aperturePhase * 0.51 + 53.0));
+    float rayMask = sstep(0.3 + softness * 0.12, 0.62 + softness * 0.1, lightField)
+                  * sstep(0.2, 0.64, life);
+    // angular distance from the sun, with a per-opening reach and soft tails
+    float ang = acos(clamp(mu, -1.0, 1.0));
+    float rayLength = 0.26 + reach * 0.95;
+    rayMask *= 1.0 - sstep(rayLength * 0.35, rayLength, ang);
+    // broken-clouds band: shafts need openings, not overcast or clear sky
+    float broken = sstep(0.02, 0.1, uCoverage) * (1.0 - sstep(0.65, 0.94, uCoverage));
+    float T = texture(uShafts, vec2(uv.x, 1.0 - uv.y)).r;
+    vec3 shaftCol = mix(vec3(0.93, 0.96, 1.0), uGlow * 1.7, clamp(0.2 + uShaftAmt * 0.6, 0.0, 0.85));
+    col = mix(col, shaftCol, rayMask * T * broken * uShaftAmt * 0.9 * (1.0 - a * 0.7));
+  }
 
   col = shoulder(col);
   // gentle vignette — a lens, not an effect

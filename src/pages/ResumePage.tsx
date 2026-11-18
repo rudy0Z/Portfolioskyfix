@@ -82,7 +82,6 @@ export function ResumePage() {
             className="px-4 py-1.5 rounded-full bg-neutral-900 text-white hover:bg-black border border-white/30 font-sans font-medium text-[12px] shadow-md flex items-center gap-2 transition-all hover:scale-[1.02]"
           >
             <span>View / Print PDF</span>
-            <span className="text-[10px]">🖨</span>
           </button>
         </div>
       </div>
@@ -136,7 +135,7 @@ export function ResumePage() {
           {/* Subtle triangle notch pointing to avatar */}
           <div className="absolute -top-1.5 left-8 w-3 h-3 bg-slate-50 border-t border-l border-slate-200/80 transform rotate-45" />
           <div className="font-bold text-neutral-900 mb-0.5 flex items-center gap-1.5">
-            <span>👋 Hi there!</span>
+            <span>Hello —</span>
           </div>
           <p className="font-light text-neutral-600">
             With 3+ years designing in the autonomous AI and interaction space. Focused on decision-heavy interfaces,
@@ -176,8 +175,9 @@ export function ResumePage() {
                   Designed the operator command interface for an autonomous wildfire initial-attack aerial command system.
                 </li>
                 <li>
-                  Architected the <strong>90-Second Human Verification Window</strong> and deterministic Attention Arbiter,
-                  compressing wildfire escalation delays from 48 minutes down to 90 seconds.
+                  Designed the <strong>90-second Human Verification Window</strong> as the brief's north star and
+                  TALON's evidence-to-authorization flow — the exercise run measures 7:12 detection-to-order
+                  against a 48-minute manual baseline.
                 </li>
                 <li>
                   Engineered a <strong>dual-fidelity degradation ladder</strong> connecting 2D tactical maps with on-demand
@@ -218,7 +218,7 @@ export function ResumePage() {
               </ul>
             </div>
 
-            {/* Role 3: Feul.AI */}
+            {/* Role 3: Feul */}
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-3">
                 <div className="h-8 w-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold text-[14px] shrink-0 shadow-sm mt-0.5">
@@ -226,7 +226,7 @@ export function ResumePage() {
                 </div>
                 <div>
                   <div className="font-sans text-[16px] font-bold text-neutral-950 flex flex-wrap items-baseline gap-2">
-                    <span>Feul.AI</span>
+                    <span>Feul</span>
                     <span className="font-mono text-[11px] font-medium text-neutral-500">
                       2025 (Startup Origin)
                     </span>
@@ -241,7 +241,8 @@ export function ResumePage() {
                   Designed a trust-first voice recording marketplace for non-English vernacular gig contributors in India.
                 </li>
                 <li>
-                  Created <strong>transparent micro-payout contracts</strong> with visible ₹50 Calibration Quests and instant UPI wallet transfers.
+                  Designed <strong>transparent pay logic</strong> — the ₹50 calibration quest and a ₹100
+                  no-minimum first withdrawal — decided before recording, never held from the contributor.
                 </li>
                 <li>
                   Designed real-time <strong>48-bar acoustic waveform verification</strong> to ensure high-grade training dataset quality.
@@ -387,7 +388,7 @@ export function ResumePage() {
 
         {/* Bottom subtle watermark */}
         <div className="mt-12 pt-6 border-t border-neutral-100 flex items-center justify-between font-mono text-[10px] text-neutral-400">
-          <span>PORTFOLIO DOSSIER // RUDRAKSH SINGH</span>
+          <span>RUDRAKSH SINGH · PORTFOLIO DOSSIER</span>
           <span>PRINT OPTIMIZED · {new Date().getFullYear()}</span>
         </div>
       </div>

@@ -10,10 +10,10 @@ import React, {
 } from "react";
 import { oklch, mixOklch, withAlpha, type OKLCH } from "@/lib/color";
 import { paletteAt } from "@/lib/skyPalette";
+import { getLight } from "@/lib/lighting";
+import { moonAt, sunAt } from "@/lib/celestial";
 import {
   formatTime,
-  momentLabel,
-  phaseAt,
   wrapHours,
 } from "@/lib/timeOfDay";
 import {
@@ -26,58 +26,97 @@ import {
 } from "@/lib/useTimeOfDay";
 
 /* ==========================================================================
-   Geometry & Physics Constants
+   ThermalSkyClock — the horizon instrument.
+
+   The face is NOT a clock circle: it is a shallow horizon arc across a
+   landscape window. The sun and moon markers ride the arc at their real
+   altitudes (positions come straight from the site's LightModel — no
+   astronomy is recomputed here), and the 4-stop OKLCH sky trail
+   (−2.85h / −1.35h / now / +0.65h) is painted along the arc as a comet whose
+   head is the active body: position = now. Needle, tick ring and hands are
+   gone — the trail IS the read.
+
+   Interaction: click the horizon where the body would be (glides there),
+   drag horizontally to scrub (one arc-span ≈ 12 h, Shift = fine), arrow
+   keys step time, wheel scrubs while expanded, presets + LIVE + digital
+   rolling readout unchanged.
    ========================================================================== */
 
-const VB_SIZE = 240;
-const CX = 120;
-const CY = 120;
+/* ── Horizon face geometry ─────────────────────────────────────────────── */
 
-/** 72 ticks = 5° spacing (10-minute intervals on a 12h face) for lush Pin UI density */
-const SKY_TICKS = 72;
+const VB_W = 240;
+const VB_H = 150;
 
-/** LensClock signature viewport pan distance in thumbnail mode */
-const PAN_DISTANCE = 22;
+/** Instrument span of the horizon line (graduations + comet live here). */
+const ARC_L = 14;
+const ARC_R = 226;
+const ARC_MID = (ARC_L + ARC_R) / 2;
+/** Face overdraw so the thumbnail camera can pan without revealing edges. */
+const FACE_L = -10;
+const FACE_R = 250;
+
+/** Parabolic bow: y = ARC_APEX + ARC_BOW·u², u = (x − mid)/half-span. */
+const ARC_APEX = 80;
+const ARC_BOW = 14;
+const ARC_EDGE = ARC_APEX + ARC_BOW;
+
+/** Card px of rise per unit of model altitude (noon sun ≈ 1.0). */
+const ALT_RISE = 38;
+const MOON_RISE = 32; // the moon rides a little lower than the sun
+
+/** Thumbnail camera: a square stage crops the 240-wide face to a 150-wide
+    slice (preserveAspectRatio slice); the camera tracks the body within it. */
+const THUMB_PAN = (VB_W - VB_H) / 2;
+
+function arcY(x: number): number {
+  const u = (x - ARC_MID) / ((ARC_R - ARC_L) / 2);
+  return ARC_APEX + ARC_BOW * u * u;
+}
+
+function cardX(modelX: number): number {
+  return ARC_L + modelX * (ARC_R - ARC_L);
+}
+
+/** Exact quadratic for the parabola between two symmetric x endpoints. */
+function arcPath(x0: number, x1: number): string {
+  const y0 = arcY(x0);
+  const y1 = arcY(x1);
+  return `M ${x0} ${y0.toFixed(2)} Q ${ARC_MID} ${(2 * ARC_APEX - y0).toFixed(2)} ${x1} ${y1.toFixed(2)}`;
+}
+
+const FACE_ARC = arcPath(FACE_L, FACE_R);
+const INSTRUMENT_ARC = arcPath(ARC_L, ARC_R);
 
 export type ClockMode = "analog" | "digital";
 export type ClockSize = "thumbnail" | "full";
 
 export interface ThermalSkyClockProps {
-  /** Initial or controlled mode: 'analog' (LensClock + Thermal ring) or 'digital' (Rolling slots) */
+  /** Initial or controlled mode: 'analog' (face only) or 'digital' (face + rolling readout) */
   mode?: ClockMode;
   onModeChange?: (mode: ClockMode) => void;
-  /** 'thumbnail' activates LensClock camera panning for navbar placement; 'full' opens the complete interactive dial */
+  /** 'thumbnail' is the panning nav-chrome window; 'full' is the interactive horizon instrument */
   size?: ClockSize;
-  /** If true (default), clicking the thumbnail automatically expands it into a full popover dial */
+  /** If true (default), clicking the thumbnail automatically expands it into a full popover */
   expandable?: boolean;
   onSizeChange?: (size: ClockSize) => void;
   className?: string;
 }
 
 /* ==========================================================================
-   Math & Color Helpers
+   Sky sampling — everything comes from the site's own models.
    ========================================================================== */
 
-function polar(cx: number, cy: number, r: number, deg: number) {
-  const rad = ((deg - 90) * Math.PI) / 180;
-  return {
-    x: cx + r * Math.cos(rad),
-    y: cy + r * Math.sin(rad),
-  };
-}
+type BodyAt = (h: number) => ReturnType<typeof sunAt>;
 
-function wrapDeg(deg: number): number {
-  return ((deg % 360) + 360) % 360;
-}
-
-function shortestAngleDelta(fromDeg: number, toDeg: number): number {
-  let d = ((toDeg - fromDeg) % 360 + 540) % 360 - 180;
-  return d;
+function bodyFor(active: "sun" | "moon", h: number) {
+  return active === "sun" ? sunAt(h) : moonAt(h);
 }
 
 /**
- * Samples the portfolio's OKLCH sky palette at time `t`, extracting a rich
- * 4-stop thermal spectrum that moves and morphs with the time of day.
+ * Samples the portfolio's OKLCH sky palette at time `t`, extracting the
+ * 4-stop trail spectrum (far past → mid past → now → lead) that is painted
+ * along the horizon arc, plus the chrome colors (glass frame inks stay light:
+ * the frame is dark glass at every hour).
  */
 function getThermalSpectrum(t: number) {
   const palNow = paletteAt(t);
@@ -85,7 +124,6 @@ function getThermalSpectrum(t: number) {
   const palTrailFar = paletteAt(wrapHours(t - 2.85));
   const palLead = paletteAt(wrapHours(t + 0.65));
 
-  // Boost chroma slightly on the dial so the instrument ticks pop like Pin UI
   const boost = (c: OKLCH, lAdd = 0, cMul = 1.22): string =>
     oklch({
       l: Math.min(0.96, Math.max(0.25, c.l + lAdd)),
@@ -94,11 +132,15 @@ function getThermalSpectrum(t: number) {
     });
 
   const headHex = boost(palNow.sunCore, 0.04, 1.3);
-  const crestHex = boost(palNow.cloudRim, 0.02, 1.28);
+  const crestHex = boost(palNow.cloudRim, 0.05, 1.28);
   const bodyHex = boost(palNow.horizon, 0.0, 1.25);
-  const midTrailHex = boost(palTrailMid.horizon, -0.02, 1.2);
-  const farTrailHex = boost(palTrailFar.mid, -0.04, 1.15);
+  const midTrailHex = boost(palTrailMid.horizon, -0.05, 1.2);
+  const farTrailHex = boost(palTrailFar.mid, -0.1, 1.12);
   const leadHex = boost(palLead.sunGlow, 0.02, 1.2);
+
+  /* the chrome — dark glass at every hour, so frame ink is always light */
+  const deepBase: OKLCH = { l: 0.14, c: 0.045, h: 252 };
+  const skyDeep = mixOklch(palNow.horizon, deepBase, 0.8);
 
   return {
     headHex,
@@ -108,13 +150,43 @@ function getThermalSpectrum(t: number) {
     farTrailHex,
     leadHex,
     rawNow: palNow,
-    rawTrailMid: palTrailMid,
-    rawTrailFar: palTrailFar,
+    skyZenithHex: oklch(mixOklch(palNow.zenith, deepBase, 0.68)),
+    skyMidHex: oklch(mixOklch(palNow.mid, deepBase, 0.7)),
+    skyDeepHex: oklch(skyDeep),
+    glowHex: boost(palNow.sunGlow, 0.06, 1.3),
+    inkStrong: "#F7F5F0",
+    inkDim: "rgba(247, 245, 240, 0.35)",
   };
 }
 
+/* Horizon graduations: where each body actually stands at whole hours of its
+   own arc — sampled straight from the celestial model, never hand-placed.
+   The sun owns 06–18, the antiphase moon owns 19–05 (same handover the sky
+   engine uses: sun.active while altitude > −0.05). */
+const SUN_MARKS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((h) => ({
+  h,
+  x: cardX(sunAt(h).x),
+}));
+const MOON_MARKS = [19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5].map((h) => ({
+  h,
+  x: cardX(moonAt(h).x),
+}));
+
+/* Click-to-scrub table: every quarter hour each body is above the horizon,
+   with its card x. Nearest-x wins, so a click means "put the body HERE". */
+function sampleArc(bodyFn: BodyAt) {
+  const out: { h: number; x: number }[] = [];
+  for (let h = 0; h < 24; h += 0.25) {
+    const b = bodyFn(h);
+    if (b.altitude > 0.005) out.push({ h, x: cardX(b.x) });
+  }
+  return out;
+}
+const SUN_ARC_SAMPLES = sampleArc(sunAt);
+const MOON_ARC_SAMPLES = sampleArc(moonAt);
+
 /* ==========================================================================
-   Rolling Digit Slot Machine (Pin UI Thermal Dial Digital Synthesis)
+   Rolling Digit Slot Machine (digital readout)
    ========================================================================== */
 
 function RollingDigit({
@@ -139,7 +211,7 @@ function RollingDigit({
               key={n}
               className={`tsc-digit-cell ${isCurrent ? "is-current" : ""}`}
               style={{
-                color: isCurrent ? "#FBF9F5" : undefined,
+                color: isCurrent ? "var(--tsc-ink, #FBF9F5)" : undefined,
                 textShadow: isCurrent
                   ? `0 0 18px ${withAlpha(accentColor, 0.55)}`
                   : undefined,
@@ -155,7 +227,7 @@ function RollingDigit({
 }
 
 /* ==========================================================================
-   Main Hybrid Component: ThermalSkyClock
+   Main Component: ThermalSkyClock (horizon instrument)
    ========================================================================== */
 
 export function ThermalSkyClock({
@@ -175,8 +247,7 @@ export function ThermalSkyClock({
     controlledSize ?? "full"
   );
   const [isDragging, setIsDragging] = useState(false);
-  const [hoverAngle, setHoverAngle] = useState<number | null>(null);
-  const [liveSeconds, setLiveSeconds] = useState<number>(0);
+  const [hover, setHover] = useState<{ x: number; hour: number } | null>(null);
 
   const activeMode = controlledMode ?? internalMode;
   const activeSize = controlledSize ?? internalSize;
@@ -187,15 +258,9 @@ export function ThermalSkyClock({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const dragStateRef = useRef<{
-    active: boolean;
-    target: "hour" | "minute" | "ring";
-    lastAngle: number;
-    moved: boolean;
-  }>({
+  const dragStateRef = useRef<{ active: boolean; lastX: number; moved: boolean }>({
     active: false,
-    target: "ring",
-    lastAngle: 0,
+    lastX: 0,
     moved: false,
   });
 
@@ -214,19 +279,6 @@ export function ThermalSkyClock({
     },
     [onSizeChange]
   );
-
-  // Smooth sweeping seconds when synced to real-time clock
-  useEffect(() => {
-    if (syncMode !== "auto") return;
-    let raf = 0;
-    const tick = () => {
-      const now = new Date();
-      setLiveSeconds(now.getSeconds() + now.getMilliseconds() / 1000);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [syncMode]);
 
   // Escape folds the expanded clock back into its thumbnail.
   useEffect(() => {
@@ -259,147 +311,88 @@ export function ThermalSkyClock({
   }, [isThumbnail]);
 
   /* ------------------------------------------------------------------------
-     Horological Angles & AM/PM State
+     The light model — sun/moon positions, altitudes and the live palette
+     all come from the site's single derivation. No astronomy here.
      ------------------------------------------------------------------------ */
-  const isPM = t >= 12;
-  const isDaylight = t >= 6 && t < 18.5;
-  const hour12 = t % 12;
-  const hourAngle = (hour12 / 12) * 360; // 30° per hour
-  const minuteAngle = ((t * 60) % 60) * 6; // 6° per minute
-  const secondAngle =
-    syncMode === "auto" ? liveSeconds * 6 : (((t * 3600) % 60) / 60) * 360;
-
-  // 24-hour solar/lunar complication rotation (0° = Noon at top, 180° = Midnight at top)
-  const complicationAngle = ((t - 12) / 24) * 360;
-
-  /* ------------------------------------------------------------------------
-     LensClock Camera Panning (Active in Thumbnail View)
-     ------------------------------------------------------------------------ */
-  const hourRad = ((hourAngle - 90) * Math.PI) / 180;
-  const panX = isThumbnail ? Math.cos(hourRad) * PAN_DISTANCE : 0;
-  const panY = isThumbnail ? Math.sin(hourRad) * PAN_DISTANCE : 0;
-
-  // Directional light zone coordinates (shifts internal glow toward active hand)
-  const zoneX = (50 + Math.cos(hourRad) * 34).toFixed(1);
-  const zoneY = (50 + Math.sin(hourRad) * 34).toFixed(1);
-
-  /* ------------------------------------------------------------------------
-     Multi-Stop Dynamic Atmospheric Spectrum
-     ------------------------------------------------------------------------ */
+  const light = useMemo(() => getLight(t), [t]);
   const spectrum = useMemo(() => getThermalSpectrum(t), [t]);
 
-  /* ------------------------------------------------------------------------
-     72-Tick Pin UI Wave Physics + Per-Tick Chromatic Gradient
-     ------------------------------------------------------------------------ */
-  const ticks = useMemo(() => {
-    const focusAngle = isDragging && hoverAngle !== null ? hoverAngle : hourAngle;
+  // Same body handover the sky engine uses for its key light.
+  const activeBody: "sun" | "moon" = light.sun.altitude > -0.05 ? "sun" : "moon";
+  const body = activeBody === "sun" ? light.sun : light.moon;
 
-    return Array.from({ length: SKY_TICKS }, (_, i) => {
-      const deg = (i / SKY_TICKS) * 360;
+  /* Comet stops along the arc: the tail samples the active body's OWN past
+     positions (where it stood 1.35 h / 2.85 h ago), the lead where it will
+     stand in 0.65 h. A sample from before the body rose wraps to a pre-rise
+     arc position, so past samples clamp to at-or-behind the head — a just-
+     risen body simply has no tail yet, and it grows as it travels. */
+  const trail = useMemo(() => {
+    const at = (h: number) => cardX(bodyFor(activeBody, h).x);
+    const off = (x: number) =>
+      Math.min(1, Math.max(0, (x - ARC_L) / (ARC_R - ARC_L)));
+    const now = off(cardX(body.x));
+    const far = Math.min(off(at(wrapHours(t - 2.85))), now);
+    const mid = Math.max(Math.min(off(at(wrapHours(t - 1.35))), now), far);
+    const lead = Math.max(off(at(wrapHours(t + 0.65))), now);
+    return { far, mid, now, lead };
+  }, [t, activeBody, body.x]);
 
-      // Angular distances
-      const behind = (focusAngle - deg + 360) % 360;
-      const ahead = (deg - focusAngle + 360) % 360;
-      const nearest = Math.min(behind, ahead);
+  /* Markers at real altitudes over the bowed line. */
+  const sunX = cardX(light.sun.x);
+  const sunY = arcY(sunX) - light.sun.altitude * ALT_RISE;
+  const moonX = cardX(light.moon.x);
+  const moonY = arcY(moonX) - light.moon.altitude * MOON_RISE;
+  const headX = activeBody === "sun" ? sunX : moonX;
 
-      // 1. Pin UI Symmetric Tactile Wave Crest (Raised Cosine Kernel)
-      const waveSpan = 42; // degrees of influence around active needle
-      const waveRaw =
-        nearest < waveSpan
-          ? 0.5 * (1 + Math.cos((Math.PI * nearest) / waveSpan))
-          : 0;
-      const head = Math.pow(waveRaw, 1.35);
+  /* Thumbnail camera: track the body along the horizon (the pan idiom, kept
+     as an idiom — it is now a horizon tracking shot, not a dial orbit). */
+  const panX = isThumbnail
+    ? Math.max(-THUMB_PAN, Math.min(THUMB_PAN, ARC_MID - headX))
+    : 0;
+  const panY = isThumbnail ? body.altitude * 5 : 0;
 
-      // 2. Travelling Comet Trail (145° sweep behind the rotation)
-      const trailSpan = 145;
-      const trailRaw = behind < trailSpan ? 1 - behind / trailSpan : 0;
-      const trail = Math.pow(trailRaw, 1.55) * 0.82;
+  /* Ground afterglow: the sky's own light pooling on the field under the head. */
+  const groundGlow =
+    activeBody === "sun"
+      ? Math.min(
+          0.55,
+          light.golden * 0.5 + light.daylight * 0.2 + light.twilight * 0.35
+        )
+      : 0.14 + light.moonIllumination * 0.12;
 
-      // 3. Hover Resonance Ripple (secondary tactile feedback when pointer hovers)
-      let hoverBoost = 0;
-      if (hoverAngle !== null && !isDragging) {
-        const hDist = Math.min(
-          (hoverAngle - deg + 360) % 360,
-          (deg - hoverAngle + 360) % 360
-        );
-        if (hDist < 28) {
-          hoverBoost =
-            Math.pow(0.5 * (1 + Math.cos((Math.PI * hDist) / 28)), 1.5) * 0.45;
+  /* Click-to-scrub: nearest quarter-hour sample of the active body's arc. */
+  const hourForCardX = useCallback(
+    (x: number) => {
+      const table = activeBody === "sun" ? SUN_ARC_SAMPLES : MOON_ARC_SAMPLES;
+      let best = table[0]?.h ?? t;
+      let bestD = Infinity;
+      for (const s of table) {
+        const d = Math.abs(s.x - x);
+        if (d < bestD) {
+          bestD = d;
+          best = s.h;
         }
       }
-
-      const energy = Math.min(1, Math.max(head, trail) + hoverBoost);
-      const isMajor = i % 6 === 0; // Every 12th of dial (hour markers)
-      const isMedium = i % 3 === 0 && !isMajor; // Half-hour markers
-
-      // Dynamic Radial Geometry (Lively Pin UI inward + outward expansion)
-      const baseInner = isMajor ? 82.5 : isMedium ? 85 : 86.8;
-      const baseOuter = isMajor ? 94.5 : isMedium ? 93 : 91.8;
-
-      const innerR = baseInner - head * 4.2 - trail * 1.8 - hoverBoost * 2.2;
-      const outerR = baseOuter + head * 8.4 + trail * 3.8 + hoverBoost * 4.0;
-
-      const p1 = polar(CX, CY, innerR, deg);
-      const p2 = polar(CX, CY, outerR, deg);
-
-      // Multi-Color Travelling Spectrum Calculation per Tick:
-      // Each tick samples its exact solar time offset along the sky palette!
-      const tickHourOffset =
-        nearest === ahead && ahead < 36
-          ? (ahead / 360) * 6
-          : -(behind / 360) * 8;
-      const tickPal = paletteAt(wrapHours(t + tickHourOffset));
-
-      const blendedOklch =
-        head > 0.65
-          ? mixOklch(tickPal.horizon, spectrum.rawNow.sunCore, (head - 0.65) / 0.35)
-          : mixOklch(tickPal.mid, tickPal.horizon, Math.min(1, energy * 1.3));
-
-      const activeTickHex = oklch({
-        l: Math.min(0.95, Math.max(0.38, blendedOklch.l + head * 0.14)),
-        c: Math.min(0.3, blendedOklch.c * (1.15 + energy * 0.25)),
-        h: blendedOklch.h,
-      });
-
-      const strokeWidth =
-        (isMajor ? 1.65 : 1.05) + head * 1.55 + trail * 0.65 + hoverBoost * 0.5;
-      const opacity = isMajor
-        ? 0.38 + energy * 0.62
-        : 0.16 + energy * 0.84;
-
-      return {
-        i,
-        deg,
-        p1,
-        p2,
-        energy,
-        head,
-        isMajor,
-        strokeWidth,
-        opacity,
-        color: energy > 0.06 ? activeTickHex : "rgba(255, 255, 255, 0.28)",
-      };
-    });
-  }, [hourAngle, hoverAngle, isDragging, spectrum.rawNow.sunCore, t]);
+      return best;
+    },
+    [activeBody, t]
+  );
 
   /* ------------------------------------------------------------------------
-     Pointer Interaction & Continuous 24h Unwrapping
+     Pointer interaction — click the horizon, or drag along it to scrub.
      ------------------------------------------------------------------------ */
-  const angleFromPointer = useCallback((clientX: number, clientY: number) => {
+  const unitsFromClient = useCallback((clientX: number) => {
     const svg = svgRef.current;
-    if (!svg) return 0;
+    if (!svg) return ARC_MID;
     const rect = svg.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const deg = (Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI + 90;
-    return wrapDeg(deg);
+    const scale = Math.max(rect.width / VB_W, rect.height / VB_H);
+    return (
+      (clientX - rect.left - (rect.width - VB_W * scale) / 2) / scale
+    );
   }, []);
 
-  const handlePointerDown = (
-    e: React.PointerEvent<SVGSVGElement>,
-    target: "hour" | "minute" | "ring" = "ring"
-  ) => {
-    // If in compact navbar thumbnail mode, clicking expands to full view first
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    // In compact navbar thumbnail mode, clicking expands to full view first
     if (isThumbnail && expandable) {
       e.stopPropagation();
       handleSizeSwitch("full");
@@ -408,57 +401,41 @@ export function ThermalSkyClock({
 
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    const angle = angleFromPointer(e.clientX, e.clientY);
-
-    dragStateRef.current = {
-      active: true,
-      target,
-      lastAngle: angle,
-      moved: false,
-    };
+    dragStateRef.current = { active: true, lastX: e.clientX, moved: false };
     setIsDragging(true);
-    setHoverAngle(angle);
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    const angle = angleFromPointer(e.clientX, e.clientY);
-    setHoverAngle(angle);
+    const x = Math.min(ARC_R, Math.max(ARC_L, unitsFromClient(e.clientX)));
 
-    if (!dragStateRef.current.active) return;
-
-    const deltaDeg = shortestAngleDelta(dragStateRef.current.lastAngle, angle);
-    if (Math.abs(deltaDeg) > 0.4) {
-      dragStateRef.current.moved = true;
+    if (!dragStateRef.current.active) {
+      if (!isThumbnail) setHover({ x, hour: hourForCardX(x) });
+      return;
     }
-    dragStateRef.current.lastAngle = angle;
 
-    // Fine scrub if holding Shift or dragging Minute hand (1 turn = 1 hour)
-    // Normal scrub on Ring or Hour hand (1 turn = 12 hours, continuous across AM/PM)
-    const hoursPerTurn =
-      e.shiftKey || dragStateRef.current.target === "minute" ? 1 : 12;
-    const deltaHours = (deltaDeg / 360) * hoursPerTurn;
+    const dx = e.clientX - dragStateRef.current.lastX;
+    if (Math.abs(dx) < 0.5) return;
+    dragStateRef.current.lastX = e.clientX;
+    dragStateRef.current.moved = true;
 
-    setSkyTime(wrapHours(getSkyTime() + deltaHours), "manual");
+    const rect = svgRef.current?.getBoundingClientRect();
+    const scale = rect ? Math.max(rect.width / VB_W, rect.height / VB_H) : 1;
+    const units = dx / scale;
+    // One horizon-span of drag = 12 hours (Shift = fine, 3 hours per span).
+    const hours = (units / (ARC_R - ARC_L)) * (e.shiftKey ? 3 : 12);
+    setSkyTime(wrapHours(getSkyTime() + hours), "manual");
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!dragStateRef.current.active) return;
     const wasMoved = dragStateRef.current.moved;
-    const releaseAngle = angleFromPointer(e.clientX, e.clientY);
-
     dragStateRef.current.active = false;
     setIsDragging(false);
 
-    // If user clicked a tick on the ring without dragging, smoothly glide to that hour
-    if (!wasMoved) {
-      const target12 = (releaseAngle / 360) * 12;
-      const currentT = getSkyTime();
-      const baseHalfDay = currentT >= 12 ? 12 : 0;
-      let candidate = baseHalfDay + target12;
-      // Pick the candidate within +-6 hours for natural shortest-path glide
-      if (candidate - currentT > 6) candidate -= 12;
-      else if (currentT - candidate > 6) candidate += 12;
-      glideSkyTime(wrapHours(candidate), { duration: 520 });
+    // A click (no drag) glides the active body to the clicked horizon spot.
+    if (!wasMoved && !isThumbnail) {
+      const x = Math.min(ARC_R, Math.max(ARC_L, unitsFromClient(e.clientX)));
+      glideSkyTime(hourForCardX(x), { duration: 520 });
     }
   };
 
@@ -492,8 +469,11 @@ export function ThermalSkyClock({
   const m1 = Number(mmStr[0] ?? 0);
   const m2 = Number(mmStr[1] ?? 0);
 
-  // Tip position of the active solar wave
-  const cometTip = polar(CX, CY, 89, hourAngle);
+  const marks = activeBody === "sun" ? SUN_MARKS : MOON_MARKS;
+  const nightStars = useMemo(
+    () => light.stars.filter((s) => s.y < 0.5 && s.x > 0.02 && s.x < 0.98),
+    [light.stars]
+  );
 
   return (
     <div
@@ -509,32 +489,22 @@ export function ThermalSkyClock({
           "--tsc-trail-mid": spectrum.midTrailHex,
           "--tsc-trail-far": spectrum.farTrailHex,
           "--tsc-lead": spectrum.leadHex,
-          "--tsc-wash": withAlpha(spectrum.bodyHex, isThumbnail ? 0.42 : 0.32),
-          "--tsc-wash-deep": withAlpha(spectrum.midTrailHex, 0.24),
-          "--tsc-zone-x": `${zoneX}%`,
-          "--tsc-zone-y": `${zoneY}%`,
-          "--tsc-angle": `${hourAngle}deg`,
+          "--tsc-sky-zenith": spectrum.skyZenithHex,
+          "--tsc-sky-mid": spectrum.skyMidHex,
+          "--tsc-sky-deep": spectrum.skyDeepHex,
+          "--tsc-glow": spectrum.glowHex,
+          "--tsc-ink": spectrum.inkStrong,
+          "--tsc-ink-dim": spectrum.inkDim,
         } as React.CSSProperties
       }
     >
-      {/* Ambient Pin UI Thermal Heat Wash (Conic + Radial Travelling Glow) */}
-      <div className="tsc-heat-aura" aria-hidden="true" />
+      {/* Outer atmosphere kept from the chrome: a palette-tinted under-glow */}
+      <div className="tsc-bloom" aria-hidden="true" />
+      <div className="tsc-halo" aria-hidden="true" />
 
       {/* Top Instrument Bar (Hidden in compact Navbar Thumbnail mode) */}
       {!isThumbnail && (
         <header className="tsc-header">
-          <div className="tsc-phase-pill">
-            <span
-              className="tsc-phase-dot"
-              style={{
-                background: spectrum.headHex,
-                boxShadow: `0 0 10px ${spectrum.headHex}`,
-              }}
-            />
-            <span className="tsc-phase-name">{momentLabel(t)}</span>
-            <span className="tsc-meridiem-tag">{isPM ? "PM" : "AM"}</span>
-          </div>
-
           <div className="tsc-controls">
             <div className="tsc-mode-toggle" role="tablist" aria-label="Clock display mode">
               <button
@@ -544,7 +514,7 @@ export function ThermalSkyClock({
                 className={`tsc-mode-btn ${activeMode === "analog" ? "is-active" : ""}`}
                 onClick={() => handleModeSwitch("analog")}
               >
-                Analog
+                Face
               </button>
               <button
                 type="button"
@@ -572,416 +542,297 @@ export function ThermalSkyClock({
         </header>
       )}
 
-      {/* Main Horological Dial Canvas */}
+      {/* The Horizon Face */}
       <div className="tsc-dial-stage">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${VB_SIZE} ${VB_SIZE}`}
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          preserveAspectRatio="xMidYMid slice"
           className="tsc-svg"
           role="slider"
           tabIndex={0}
-          aria-label="Interactive Sky Time Horological Dial"
+          aria-label="Sky horizon instrument — click the arc, drag, or use arrow keys to set site time"
           aria-valuemin={0}
           aria-valuemax={24}
           aria-valuenow={Number(t.toFixed(2))}
-          aria-valuetext={`${formatted} — ${momentLabel(t)}`}
-          onPointerDown={(e) => handlePointerDown(e, "ring")}
+          aria-valuetext={formatted}
+          onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={() => {
-            if (!isDragging) setHoverAngle(null);
+            if (!isDragging) setHover(null);
           }}
           onKeyDown={handleKeyDown}
         >
           <defs>
-            {/* Dynamic Multi-Stop Travelling Gradient synced to skyPalette */}
+            {/* The real sky above the line — raw palette, no dial darkening */}
             <linearGradient
-              id={`tsc-spectrum-${uid}`}
-              x1={`${50 + Math.cos(hourRad) * 45}%`}
-              y1={`${50 + Math.sin(hourRad) * 45}%`}
-              x2={`${50 - Math.cos(hourRad) * 45}%`}
-              y2={`${50 - Math.sin(hourRad) * 45}%`}
+              id={`thc-sky-${uid}`}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2={ARC_EDGE}
             >
-              <stop offset="0%" stopColor={spectrum.headHex} />
-              <stop offset="28%" stopColor={spectrum.crestHex} />
-              <stop offset="62%" stopColor={spectrum.bodyHex} />
-              <stop offset="100%" stopColor={spectrum.farTrailHex} />
+              <stop offset="0%" stopColor={oklch(spectrum.rawNow.zenith)} />
+              <stop offset="52%" stopColor={oklch(spectrum.rawNow.mid)} />
+              <stop offset="86%" stopColor={oklch(spectrum.rawNow.horizon)} />
+              <stop offset="100%" stopColor={oklch(spectrum.rawNow.haze)} />
             </linearGradient>
 
-            {/* Inner Obsidian Bezel Surface Gradient with Directional Solar Highlight */}
-            <radialGradient
-              id={`tsc-face-${uid}`}
-              cx={`${zoneX}%`}
-              cy={`${zoneY}%`}
-              r="72%"
+            {/* The field below the line — terrain keyed to the same sky */}
+            <linearGradient
+              id={`thc-ground-${uid}`}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1={ARC_EDGE - 4}
+              x2="0"
+              y2={VB_H + 30}
             >
               <stop
                 offset="0%"
-                stopColor={withAlpha(spectrum.bodyHex, 0.22)}
+                stopColor={oklch(
+                  mixOklch(spectrum.rawNow.terrain, spectrum.rawNow.horizon, 0.35)
+                )}
               />
               <stop
-                offset="42%"
-                stopColor={withAlpha(spectrum.midTrailHex, 0.09)}
+                offset="100%"
+                stopColor={oklch(
+                  mixOklch(spectrum.rawNow.terrain, { l: 0.055, c: 0.03, h: 252 }, 0.78)
+                )}
               />
-              <stop offset="78%" stopColor="rgba(12, 14, 24, 0.94)" />
-              <stop offset="100%" stopColor="rgba(7, 9, 16, 0.98)" />
-            </radialGradient>
-
-            {/* Crisp Bezel Metallic Rim */}
-            <linearGradient id={`tsc-bezel-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255, 255, 255, 0.32)" />
-              <stop offset="45%" stopColor="rgba(255, 255, 255, 0.07)" />
-              <stop offset="100%" stopColor={withAlpha(spectrum.bodyHex, 0.38)} />
             </linearGradient>
 
-            {/* Soft Bloom Filter for Active Wave Crest & Lume */}
-            <filter
-              id={`tsc-glow-${uid}`}
-              x="-35%"
-              y="-35%"
-              width="170%"
-              height="170%"
+            {/* The OKLCH trail comet — the primary read. Past sky colors trail
+                behind the now-marker, lead color ahead; position = now. */}
+            <linearGradient
+              id={`thc-trail-${uid}`}
+              gradientUnits="userSpaceOnUse"
+              x1={ARC_L}
+              y1={ARC_APEX}
+              x2={ARC_R}
+              y2={ARC_APEX}
             >
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
+              <stop
+                offset={Math.max(0, trail.far - 0.1)}
+                stopColor={spectrum.farTrailHex}
+                stopOpacity={0}
+              />
+              <stop offset={trail.far} stopColor={spectrum.farTrailHex} />
+              <stop offset={trail.mid} stopColor={spectrum.midTrailHex} />
+              <stop
+                offset={Math.max(trail.far, trail.now - (trail.now - trail.mid) * 0.45)}
+                stopColor={spectrum.bodyHex}
+              />
+              <stop offset={trail.now} stopColor={spectrum.crestHex} />
+              <stop offset={trail.lead} stopColor={spectrum.leadHex} />
+              <stop offset="100%" stopColor={spectrum.leadHex} stopOpacity={0.35} />
+            </linearGradient>
+
+            {/* Ground afterglow pooling under the comet head */}
+            <radialGradient id={`thc-wash-${uid}`}>
+              <stop offset="0%" stopColor={withAlpha(spectrum.glowHex, 0.6)} />
+              <stop offset="55%" stopColor={withAlpha(spectrum.bodyHex, 0.22)} />
+              <stop offset="100%" stopColor={withAlpha(spectrum.bodyHex, 0)} />
+            </radialGradient>
+
+            {/* Soft bloom for markers and the comet under-glow */}
+            <filter
+              id={`thc-soft-${uid}`}
+              x="-40%"
+              y="-40%"
+              width="180%"
+              height="180%"
+            >
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
 
-            {/* Clip Path for LensClock Camera Panning inside Bezel */}
-            <clipPath id={`tsc-lens-clip-${uid}`}>
-              <circle cx={CX} cy={CY} r={108} />
+            {/* Face window */}
+            <clipPath id={`thc-clip-${uid}`}>
+              <rect x="0" y="0" width={VB_W} height={VB_H} rx="12" />
             </clipPath>
+
+            {/* Moon phase crescent */}
+            <mask id={`thc-moon-${uid}`}>
+              <circle cx={moonX} cy={moonY} r="3.1" fill="#fff" />
+              <circle cx={moonX + 1.5} cy={moonY - 0.9} r="2.6" fill="#000" />
+            </mask>
           </defs>
 
-          {/* Outer Stationary Luxury Bezel */}
-          <circle
-            cx={CX}
-            cy={CY}
-            r={112}
-            fill="rgba(8, 10, 18, 0.92)"
-            stroke={`url(#tsc-bezel-${uid})`}
-            strokeWidth={1.5}
-          />
-          <circle
-            cx={CX}
-            cy={CY}
-            r={108}
-            fill={`url(#tsc-face-${uid})`}
-            stroke="rgba(255, 255, 255, 0.08)"
-            strokeWidth={0.75}
-          />
-
-          {/* ================================================================
-              Pannable Horological Stage (LensClock PAN_DISTANCE in Thumbnail)
-              ================================================================ */}
-          <g clipPath={`url(#tsc-lens-clip-${uid})`}>
+          <g clipPath={`url(#thc-clip-${uid})`}>
+            {/* Pannable horizon stage (thumbnail camera tracks the body) */}
             <g
-              className="tsc-lens-camera"
+              className="thc-camera"
               style={{
-                transform: `translate3d(${panX.toFixed(2)}px, ${panY.toFixed(
-                  2
-                )}px, 0) scale(${isThumbnail ? 1.14 : 1})`,
-                transformOrigin: `${CX}px ${CY}px`,
+                transform: `translate3d(${panX.toFixed(2)}px, ${panY.toFixed(2)}px, 0) scale(${isThumbnail ? 1.12 : 1})`,
+                transformOrigin: `${ARC_MID}px ${ARC_APEX}px`,
               }}
             >
-              {/* Ambient Travelling Comet Arc Underlay */}
-              <circle
-                cx={CX}
-                cy={CY}
-                r={89}
-                fill="none"
-                stroke={`url(#tsc-spectrum-${uid})`}
-                strokeWidth={10}
-                strokeOpacity={0.16}
-                filter={`url(#tsc-glow-${uid})`}
+              {/* Sky half */}
+              <path
+                d={`${FACE_ARC} L ${FACE_R} -60 L ${FACE_L} -60 Z`}
+                fill={`url(#thc-sky-${uid})`}
               />
 
-              {/* LensClock Fine Structural Spokes */}
-              <g className="tsc-spokes" aria-hidden="true">
-                {Array.from({ length: 12 }, (_, i) => {
-                  const deg = i * 30;
-                  const pIn = polar(CX, CY, 24, deg);
-                  const pOut = polar(CX, CY, 78, deg);
-                  return (
-                    <line
+              {/* Night stars — the sky model's own field, gated by starOpacity */}
+              <g opacity={light.starOpacity} fill="#E9EFFA">
+                {nightStars.map((s, i) =>
+                  i % 2 === 0 ? (
+                    <circle
                       key={i}
-                      x1={pIn.x}
-                      y1={pIn.y}
-                      x2={pOut.x}
-                      y2={pOut.y}
-                      stroke="rgba(255, 255, 255, 0.055)"
-                      strokeWidth={0.75}
+                      cx={cardX(s.x)}
+                      cy={6 + (s.y / 0.56) * 60}
+                      r={Math.max(0.45, s.size * 0.85)}
+                      opacity={s.brightness}
                     />
-                  );
-                })}
+                  ) : null
+                )}
               </g>
 
-              {/* Concentric Horological Chapter Rings */}
-              <circle
-                cx={CX}
-                cy={CY}
-                r={78}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.09)"
-                strokeWidth={0.75}
-                strokeDasharray="1.5 3.5"
-              />
-              <circle
-                cx={CX}
-                cy={CY}
-                r={54}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.05)"
-                strokeWidth={0.75}
+              {/* Field half */}
+              <path
+                d={`${FACE_ARC} L ${FACE_R} ${VB_H + 60} L ${FACE_L} ${VB_H + 60} Z`}
+                fill={`url(#thc-ground-${uid})`}
               />
 
-              {/* 72-Tick Pin UI Reactive Thermal Comb */}
-              <g className="tsc-tick-ring">
-                {ticks.map((tk) => (
-                  <line
-                    key={tk.i}
-                    x1={tk.p1.x}
-                    y1={tk.p1.y}
-                    x2={tk.p2.x}
-                    y2={tk.p2.y}
-                    stroke={tk.color}
-                    strokeWidth={tk.strokeWidth}
-                    strokeLinecap="round"
-                    strokeOpacity={tk.opacity}
-                    filter={tk.head > 0.55 ? `url(#tsc-glow-${uid})` : undefined}
-                  />
-                ))}
-              </g>
-
-              {/* Active Wave Crest Orb (Rides the tip of the thermal wave) */}
-              <circle
-                cx={cometTip.x}
-                cy={cometTip.y}
-                r={isThumbnail ? 3.2 : 2.6}
-                fill={spectrum.headHex}
-                filter={`url(#tsc-glow-${uid})`}
+              {/* Afterglow pooling on the ground under the comet head */}
+              <ellipse
+                cx={headX}
+                cy={arcY(headX) + 4}
+                rx={38}
+                ry={10}
+                fill={`url(#thc-wash-${uid})`}
+                opacity={groundGlow}
               />
 
-              {/* Cardinal Hour Numerals (12, 3, 6, 9) */}
-              {activeMode === "analog" &&
-                [
-                  { label: "12", deg: 0 },
-                  { label: "3", deg: 90 },
-                  { label: "6", deg: 180 },
-                  { label: "9", deg: 270 },
-                ].map((num) => {
-                  const pos = polar(CX, CY, 67, num.deg);
+              {/* Horizon graduations — the body's true whole-hour stations */}
+              <g aria-hidden="true">
+                {marks.map((m) => {
+                  const y = arcY(m.x);
+                  const major = m.h % 3 === 0;
                   return (
-                    <text
-                      key={num.label}
-                      x={pos.x}
-                      y={pos.y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      className="tsc-cardinal-num"
-                    >
-                      {num.label}
-                    </text>
+                    <line
+                      key={m.h}
+                      x1={m.x}
+                      y1={y + 1.4}
+                      x2={m.x}
+                      y2={y + 1.4 + (major ? 5 : 2.8)}
+                      stroke={
+                        major ? "rgba(247, 245, 240, 0.5)" : "rgba(247, 245, 240, 0.2)"
+                      }
+                      strokeWidth={major ? 1 : 0.7}
+                    />
                   );
                 })}
-
-              {/* ============================================================
-                  MODE A: ANALOG HOROLOGY (Hands + AM/PM Moonphase Sub-Dial)
-                  ============================================================ */}
-              {activeMode === "analog" && (
-                <>
-                  {/* 6 O'Clock AM/PM Celestial Moonphase & Sun Sub-Dial Complication */}
-                  <g
-                    className="tsc-complication"
-                    transform={`translate(${CX}, ${CY + 34})`}
-                  >
-                    {/* Sunken Guilloché Register */}
-                    <circle
-                      cx={0}
-                      cy={0}
-                      r={19}
-                      fill="rgba(5, 7, 14, 0.85)"
-                      stroke="rgba(255, 255, 255, 0.12)"
-                      strokeWidth={0.8}
-                    />
-                    {/* Upper Hemisphere Tint (Reflects live sky horizon) */}
-                    <path
-                      d="M -18 0 A 18 18 0 0 1 18 0 Z"
-                      fill={withAlpha(spectrum.bodyHex, isDaylight ? 0.28 : 0.1)}
-                    />
-
-                    {/* Rotating 24-Hour Celestial Disc (Sun + Moon in antiphase) */}
-                    <g transform={`rotate(${complicationAngle})`}>
-                      {/* Solar Orb */}
-                      <circle
-                        cx={0}
-                        cy={-11}
-                        r={3.6}
-                        fill={spectrum.headHex}
-                        filter={`url(#tsc-glow-${uid})`}
-                      />
-                      {/* Lunar Crescent */}
-                      <g transform="translate(0, 11)">
-                        <circle cx={0} cy={0} r={3.3} fill="#D8E2F2" />
-                        <circle
-                          cx={1.4}
-                          cy={-0.8}
-                          r={2.9}
-                          fill="rgba(5, 7, 14, 0.95)"
-                        />
-                      </g>
-                    </g>
-
-                    {/* Horizon Bridge Mask & Engraved AM/PM Readout */}
-                    <path
-                      d="M -18.5 1 Q -9 -2.5 0 1 T 18.5 1 L 18.5 19 L -18.5 19 Z"
-                      fill="rgba(8, 10, 19, 0.92)"
-                    />
-                    <line
-                      x1={-17}
-                      y1={1}
-                      x2={17}
-                      y2={1}
-                      stroke="rgba(255, 255, 255, 0.14)"
-                      strokeWidth={0.6}
-                    />
+                {marks
+                  .filter((m) => m.h % 3 === 0)
+                  .map((m) => (
                     <text
-                      x={0}
-                      y={10.5}
+                      key={`l${m.h}`}
+                      x={m.x}
+                      y={arcY(m.x) + 14.5}
                       textAnchor="middle"
-                      dominantBaseline="central"
-                      className="tsc-complication-ampm"
-                      fill={spectrum.crestHex}
+                      className="thc-hour-label"
                     >
-                      {isPM ? "PM ·" : "AM ·"} {isDaylight ? "DAY" : "NIGHT"}
+                      {String(m.h).padStart(2, "0")}
                     </text>
-                  </g>
+                  ))}
+              </g>
 
-                  {/* LensClock Skeleton Hour Hand with Thermal Lume Strip */}
-                  <g
-                    transform={`rotate(${hourAngle} ${CX} ${CY})`}
-                    className="tsc-hand-group"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      handlePointerDown(e as unknown as React.PointerEvent<SVGSVGElement>, "hour");
-                    }}
-                  >
-                    {/* Hand Shadow */}
-                    <rect
-                      x={CX - 3.6}
-                      y={CY - 52}
-                      width={7.2}
-                      height={62}
-                      rx={3.6}
-                      fill="rgba(0, 0, 0, 0.55)"
-                      transform="translate(0, 2)"
-                    />
-                    {/* Brushed Chassis */}
-                    <rect
-                      x={CX - 3.4}
-                      y={CY - 52}
-                      width={6.8}
-                      height={62}
-                      rx={3.4}
-                      fill="#F4F2ED"
-                      stroke="rgba(10, 12, 20, 0.6)"
-                      strokeWidth={0.6}
-                    />
-                    {/* Chromatic Lume Inlay */}
-                    <rect
-                      x={CX - 1.3}
-                      y={CY - 46}
-                      width={2.6}
-                      height={36}
-                      rx={1.3}
-                      fill={spectrum.headHex}
-                    />
-                  </g>
+              {/* The comet: under-glow, trail stroke, then the crisp line */}
+              <path
+                d={INSTRUMENT_ARC}
+                fill="none"
+                stroke={`url(#thc-trail-${uid})`}
+                strokeWidth={6}
+                strokeOpacity={0.28}
+                filter={`url(#thc-soft-${uid})`}
+              />
+              <path
+                d={INSTRUMENT_ARC}
+                fill="none"
+                stroke={`url(#thc-trail-${uid})`}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              />
+              <path
+                d={INSTRUMENT_ARC}
+                fill="none"
+                stroke="rgba(247, 245, 240, 0.3)"
+                strokeWidth={0.6}
+              />
 
-                  {/* LensClock Skeleton Minute Hand with Thermal Lume Strip */}
-                  <g
-                    transform={`rotate(${minuteAngle} ${CX} ${CY})`}
-                    className="tsc-hand-group"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      handlePointerDown(e as unknown as React.PointerEvent<SVGSVGElement>, "minute");
-                    }}
-                  >
-                    <rect
-                      x={CX - 2.6}
-                      y={CY - 74}
-                      width={5.2}
-                      height={88}
-                      rx={2.6}
-                      fill="rgba(0, 0, 0, 0.55)"
-                      transform="translate(0, 2.5)"
-                    />
-                    <rect
-                      x={CX - 2.4}
-                      y={CY - 74}
-                      width={4.8}
-                      height={88}
-                      rx={2.4}
-                      fill="#FBF9F5"
-                      stroke="rgba(10, 12, 20, 0.6)"
-                      strokeWidth={0.6}
-                    />
-                    <rect
-                      x={CX - 0.95}
-                      y={CY - 68}
-                      width={1.9}
-                      height={54}
-                      rx={0.95}
-                      fill={spectrum.crestHex}
-                    />
-                  </g>
+              {/* Moon marker (rides its own real arc) */}
+              <g opacity={light.moon.opacity}>
+                <circle
+                  cx={moonX}
+                  cy={moonY}
+                  r={6}
+                  fill="rgba(216, 226, 242, 0.28)"
+                  filter={`url(#thc-soft-${uid})`}
+                />
+                <circle
+                  cx={moonX}
+                  cy={moonY}
+                  r={3.1}
+                  fill="#DCE6F4"
+                  mask={`url(#thc-moon-${uid})`}
+                  opacity={0.55 + light.moonIllumination * 0.45}
+                />
+              </g>
 
-                  {/* Sweeping Second Hand with Counterweight */}
-                  <g
-                    transform={`rotate(${secondAngle} ${CX} ${CY})`}
-                    style={{ pointerEvents: "none" }}
-                  >
-                    <line
-                      x1={CX}
-                      y1={CY + 18}
-                      x2={CX}
-                      y2={CY - 81}
-                      stroke={spectrum.headHex}
-                      strokeWidth={1.15}
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx={CX}
-                      cy={CY + 12}
-                      r={2.6}
-                      fill="rgba(10, 12, 20, 0.9)"
-                      stroke={spectrum.headHex}
-                      strokeWidth={1.15}
-                    />
-                  </g>
+              {/* Sun marker (the comet's head while it owns the sky) */}
+              <g opacity={light.sun.opacity}>
+                <circle
+                  cx={sunX}
+                  cy={sunY}
+                  r={7.2}
+                  fill={withAlpha(spectrum.headHex, 0.32)}
+                  filter={`url(#thc-soft-${uid})`}
+                />
+                <circle cx={sunX} cy={sunY} r={3} fill={spectrum.headHex} />
+              </g>
 
-                  {/* Precision Center Pivot Cap */}
-                  <circle
-                    cx={CX}
-                    cy={CY}
-                    r={5.6}
-                    fill="#141724"
-                    stroke="#FBF9F5"
-                    strokeWidth={1.4}
-                  />
-                  <circle cx={CX} cy={CY} r={2.1} fill={spectrum.headHex} />
-                </>
-              )}
+              {/* Hover ghost — where the body would stand at this spot */}
+              {hover && !isDragging && Math.abs(hover.x - headX) > 5
+                ? (() => {
+                    const gb = bodyFor(activeBody, hover.hour);
+                    const gy =
+                      arcY(hover.x) -
+                      gb.altitude * (activeBody === "sun" ? ALT_RISE : MOON_RISE);
+                    return (
+                      <g pointerEvents="none">
+                        <circle
+                          cx={hover.x}
+                          cy={gy}
+                          r={4.4}
+                          fill="none"
+                          stroke="rgba(247, 245, 240, 0.78)"
+                          strokeWidth={0.8}
+                          strokeDasharray="2 2.4"
+                        />
+                        <text
+                          x={hover.x}
+                          y={gy - 8}
+                          textAnchor="middle"
+                          className="thc-ghost-label"
+                        >
+                          {formatTime(hover.hour)}
+                        </text>
+                      </g>
+                    );
+                  })()
+                : null}
             </g>
           </g>
         </svg>
 
-        {/* ====================================================================
-            MODE B: DIGITAL ROLLING SLOT MACHINE OVERLAY (Pin UI Synthesis)
-            ==================================================================== */}
+        {/* Digital rolling readout over the face */}
         {activeMode === "digital" && !isThumbnail && (
           <div className="tsc-digital-center">
             <div className="tsc-digital-slots">
@@ -995,12 +846,6 @@ export function ThermalSkyClock({
               </span>
               <RollingDigit digit={m1} accentColor={spectrum.crestHex} />
               <RollingDigit digit={m2} accentColor={spectrum.crestHex} />
-            </div>
-
-            <div className="tsc-digital-sub">
-              <span>{phaseAt(t).toUpperCase()}</span>
-              <span className="tsc-digital-sep">·</span>
-              <span>{isPM ? "PM" : "AM"}</span>
             </div>
 
             <div className="tsc-digital-steppers">
@@ -1044,6 +889,13 @@ export function ThermalSkyClock({
           </div>
         )}
       </div>
+
+      {/* Thumbnail time readout — the half-time-focused look */}
+      {isThumbnail && (
+        <div className="tsc-thumb-time" aria-hidden="true">
+          {formatted}
+        </div>
+      )}
 
       {/* Bottom Live Readout & Quick Solar Anchors (Full View) */}
       {!isThumbnail && (

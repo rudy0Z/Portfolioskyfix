@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>State 2: Scrolled Past Motion Reel (Unified Hub + Chapter Dropdown)</title>
+  <link rel="stylesheet" href="../assets/tokens.css" />
+  <style>
+    :root {
+      --plate-bg: rgba(251, 249, 245, 0.9);
+      --plate-ink: #0f172a;
+      --plate-sec: #334155;
+      --plate-muted: #64748b;
+      --plate-border: rgba(15, 23, 42, 0.09);
+    }
+    body {
+      width: 1280px;
+      height: 1060px;
+      overflow: hidden;
+      font-family: var(--font-jakarta);
+      background:
+        radial-gradient(65% 45% at 78% 18%, rgba(255, 236, 205, 0.45), transparent 70%),
+        linear-gradient(180deg, #3c5a89 0%, #6d89b0 54%, #c7b5c4 100%);
+      color: var(--plate-ink);
+    }
+    /* ONE Unified Hub Capsule at Top-Center: Back + Chapter Switcher + Prototype + Sky Dial */
+    .hub-wrap {
+      position: relative;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      padding: 18px 24px 0;
+    }
+    .hub-anchor {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hub {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px;
+      border-radius: 999px;
+      background: rgba(252, 250, 246, 0.92);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      box-shadow: 0 18px 44px -14px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255,255,255,0.95);
+      backdrop-filter: blur(24px);
+      font-size: 12.5px;
+    }
+    .hub-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--plate-sec);
+      font-weight: 500;
+      border: none;
+      background: transparent;
+    }
+    .hub-sep { width: 1px; height: 16px; background: rgba(15, 23, 42, 0.12); }
+
+    /* Morphing Chapter Trigger right inside the Hub */
+    .chapter-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #f8fafc;
+      border: none;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+    .chapter-trigger .step-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: #34d399;
+    }
+
+    /* Instant Hover / Click Dropdown Sheet anchored directly to the Hub */
+    .chapter-dropdown {
+      position: absolute;
+      top: 50px;
+      width: 320px;
+      padding: 8px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 28px 60px -18px rgba(4, 8, 18, 0.65);
+      backdrop-filter: blur(24px);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .dd-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 12.5px;
+      color: #cbd5e1;
+    }
+    .dd-row:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .dd-row.active {
+      background: rgba(16, 185, 129, 0.16);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .dd-num {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: #64748b;
+      margin-right: 10px;
+    }
+    .dd-row.active .dd-num { color: #34d399; }
+
+    .hub-sky {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.055);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--plate-ink);
+      border: none;
+    }
+    .sun-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fde047, #f97316);
+    }
+
+    /* Centered Editorial Content Column below */
+    .centered-col {
+      max-width: 920px;
+      margin: 24px auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .chapter-card {
+      background: var(--plate-bg);
+      border: 1px solid var(--plate-border);
+      backdrop-filter: blur(24px);
+      border-radius: 28px;
+      padding: 36px 42px;
+      box-shadow: 0 24px 60px -28px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .ch-kicker {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #047857;
+    }
+    h2 {
+      margin: 4px 0 0;
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -0.028em;
+    }
+    .proto-stage {
+      background: #0b101d;
+      border-radius: 20px;
+      padding: 24px;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .proto-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .proto-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+      margin-top: 84px;
+    }
+    .proto-box {
+      background: #131c31;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .bullets {
+      margin: 0;
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--plate-sec);
+    }
+  </style>
+</head>
+<body>
+  <div class="hub-wrap">
+    <div class="hub-anchor">
+      <header class="hub" aria-label="Scrolled unified hub">
+        <a class="hub-item" href="case-study-hybrid.html">← Top State</a>
+        <span class="hub-sep"></span>
+
+        <button type="button" class="chapter-trigger" onclick="toggleMenu()">
+          <span class="step-badge">03 / 06</span>
+          <span>90-second verification gate</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+
+        <span class="hub-sep"></span>
+        <a class="hub-item" href="#proto">Full Prototype ↗</a>
+        <span class="hub-sep"></span>
+        <button type="button" class="hub-sky">
+          <span class="sun-dot"></span>
+          <span>17:45</span>
+        </button>
+      </header>
+
+      <!-- Shown open so you can see the exact glass dropdown look (click button in Play to toggle) -->
+      <nav class="chapter-dropdown" id="dd-menu" aria-label="Jump to chapter">
+        <a class="dd-row" href="#c1"><span><span class="dd-num">01</span>The 48-minute dispatch gap</span><span>✓</span></a>
+        <a class="dd-row" href="#c2"><span><span class="dd-num">02</span>45s motion walkthrough</span><span>✓</span></a>
+        <a class="dd-row active" href="#c3"><span><span class="dd-num">03</span>90-second verification gate</span><span>●</span></a>
+        <a class="dd-row" href="#c4"><span><span class="dd-num">04</span>Attention arbiter filter</span><span></span></a>
+        <a class="dd-row" href="#c5"><span><span class="dd-num">05</span>2D / 3D bandwidth ladder</span><span></span></a>
+        <a class="dd-row" href="#c6"><span><span class="dd-num">06</span>Outcomes &amp; reflection</span><span></span></a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="centered-col">
+    <section class="chapter-card">
+      <div>
+        <div class="ch-kicker">03 · DECISION ARCHITECTURE</div>
+        <h2>Silence reverts to watch; escalation is always active.</h2>
+      </div>
+
+      <div class="proto-stage">
+        <div class="proto-head">
+          <span>INTERACTIVE PROTOTYPE COMPONENT · EMBEDDED IN STORY</span>
+          <span style="color:#34d399;">● LIVE STATE MACHINE</span>
+        </div>
+
+        <div class="proto-grid">
+          <div class="proto-box">
+            <div style="font-family:var(--font-mono);font-size:10.5px;color:#38bdf8;margin-bottom:6px;">SECTOR 04 NORTH RIDGE · DUAL EO/IR</div>
+            <div style="font-size:15.5px;font-weight:500;line-height:1.45;">Two thermal feeds confirm +620°C crown ignition. Mutual Aid CalFire packet pre-staged.</div>
+          </div>
+          <div class="proto-box" style="display:flex;flex-direction:column;justify-content:space-between;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-family:var(--font-mono);font-size:10.5px;color:#94a3b8;">WINDOW</span>
+              <span style="font-family:var(--font-mono);font-size:26px;font-weight:600;color:#34d399;">00:42</span>
+            </div>
+            <button type="button" style="padding:10px;border-radius:10px;border:none;background:#10b981;color:#052e16;font-weight:600;font-size:13px;">Authorize Mutual Aid ↵</button>
+          </div>
+        </div>
+      </div>
+
+      <ul class="bullets">
+        <li><strong>Centered 920px reading column:</strong> Distinct from Thoufik’s left-rail layout, keeping full horizontal symmetry for wide interactive prototype stages.</li>
+        <li><strong>One unified top capsule:</strong> Back navigation, instant chapter switching, full-screen prototype launch, and sky light live inside a single calm bar.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    function toggleMenu() {
+      const m = document.getElementById('dd-menu');
+      m.style.display = m.style.display === 'none' ? 'flex' : 'none';
+    }
+  </script>
+</body>
+</html>

@@ -236,6 +236,11 @@ export function useSkyTime(): SkyTime {
   return t;
 }
 
+// Boot eagerly at module load (idempotent): the very first render reads the
+// visitor's real local time (or a ?t= deep link) instead of the noon default,
+// so the sky never flashes a hardcoded hour before effects run.
+if (typeof window !== "undefined") boot();
+
 /** Legacy phase hook — derive from the continuous clock. */
 export function useTimeOfDay(): TimeOfDay {
   return phaseAt(useSkyTime());

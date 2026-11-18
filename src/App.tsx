@@ -1,71 +1,50 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { RouterProvider, useRoute } from "@/router/Router";
 import { CodedSky, type SkyVariant } from "@/sky/CodedSky";
 import { Header } from "@/components/Header";
-import { TypeGardenLoader } from "@/components/TypeGardenLoader";
 import { CelestialNight } from "@/components/CelestialNight";
 import { ButterflyCursor } from "@/components/ButterflyCursor";
 import { ThermalSkyClock } from "@/sky/ThermalSkyClock";
 
-// Page & Section Components
+// Homepage Critical Path Components
 import { Hero } from "@/sections/Hero";
 import { StackingProjects } from "@/sections/StackingProjects";
-import { ExcavationCraterFooter } from "@/sections/ExcavationCraterFooter";
-import { AboutPage } from "@/pages/AboutPage";
-import { ProjectsPage } from "@/pages/ProjectsPage";
-import { JournalPage } from "@/pages/JournalPage";
-import { ResumePage } from "@/pages/ResumePage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { CaseStudyPage } from "@/pages/CaseStudyPage";
-import { LabPage } from "@/pages/LabPage";
+import { HomeBeats } from "@/sections/HomeBeats";
+import { SiteFooter } from "@/sections/SiteFooter";
+import { TypeGardenLoader } from "@/components/TypeGardenLoader";
+import { useReveal } from "@/lib/useReveal";
 import { setSkyTime } from "@/lib/useTimeOfDay";
 
-const VARIANT_KEY = "sky-variant";
-/** Set once the Type Garden bloom has played; later visits open straight onto the site. */
-const GARDEN_BLOOMED_KEY = "type-garden-bloomed";
-
-function hasBloomedBefore() {
-  try {
-    return window.localStorage.getItem(GARDEN_BLOOMED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+// Route-split Page Views (keeps initial homepage bundle fast & warning-free)
+const CaseStudyPage = lazy(() =>
+  import("@/pages/CaseStudyPage").then((m) => ({ default: m.CaseStudyPage })),
+);
+const NotFoundPage = lazy(() =>
+  import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })),
+);
 
 function PortfolioContent() {
   const { path } = useRoute();
   const [variant] = useState<SkyVariant>("volumetric");
-  const [hasLoadedGarden, setHasLoadedGarden] = useState(hasBloomedBefore);
-  const [isLoaderDocked, setIsLoaderDocked] = useState(hasLoadedGarden);
-  const [fullscreenGarden, setFullscreenGarden] = useState(false);
   const [clockSize, setClockSize] = useState<"thumbnail" | "full">("thumbnail");
+  // Remounting the TypeGarden loader replays the bloom (docked flower click).
+  const [bloomKey, setBloomKey] = useState(0);
+
+  // Scroll-reveal engine — one class toggle per element, CSS carries motion.
+  useReveal(path);
 
   // Visual layer flags
   const forceAurora = false;
   const forceNight = false;
   const butterflyEnabled = true;
 
-  const openGarden = useCallback(() => setFullscreenGarden(true), []);
-  const handleDockingStart = useCallback(() => setIsLoaderDocked(true), []);
-  const handleLoaderComplete = useCallback(() => {
-    try {
-      window.localStorage.setItem(GARDEN_BLOOMED_KEY, "1");
-    } catch {
-      // Storage unavailable: the bloom simply plays again next visit.
-    }
-    setHasLoadedGarden(true);
-    setIsLoaderDocked(true);
-    setFullscreenGarden(false);
-  }, []);
+  const isCaseRoute = path.startsWith("/case/");
 
   useEffect(() => {
-    window.localStorage.setItem(VARIANT_KEY, "volumetric");
     const params = new URLSearchParams(window.location.search);
-    params.set("variant", "volumetric");
     const t = params.get("t");
-    window.history.replaceState(null, "", `${window.location.pathname}?${params}${window.location.hash}`);
     if (t) {
       const [h, m] = t.split(":").map(Number);
       if (Number.isFinite(h)) setSkyTime(h + (m || 0) / 60, "manual");
@@ -74,6 +53,18 @@ function PortfolioContent() {
 
   return (
     <>
+      {/* ── TypeGarden intro: the botanical glass bloom, docking into the nav ── */}
+      <TypeGardenLoader
+        key={bloomKey}
+        ignoreSession={bloomKey > 0}
+        onDockingStart={() => {
+          document.documentElement.dataset.intro = "lift";
+        }}
+        onComplete={() => {
+          document.documentElement.dataset.intro = "done";
+        }}
+      />
+
       {/* ── Persistent Raymarched / Halftone Sky Engine ──────────────── */}
       <div className="sky-fixed">
         <CodedSky variant={variant} />
@@ -85,29 +76,25 @@ function PortfolioContent() {
       {/* ── Garden Butterfly Cursor Trail ───────────────────────────── */}
       <ButterflyCursor enabled={butterflyEnabled} />
 
-      {/* ── Fixed Top-Right Corner Clock (Refined Luxury Pill) ─────── */}
-      {/* The clock expands itself (onSizeChange); the backdrop and Escape collapse it. */}
-      <div className="fixed top-3.5 right-4 sm:right-6 z-50 pointer-events-auto">
-        <ThermalSkyClock
-          size={clockSize}
-          onSizeChange={setClockSize}
-          expandable={true}
+      {/* ── Top chrome: wordmark left, links + sky clock right ──────────── */}
+      {/* On Case Study routes, the unified Floating Top Hub Capsule owns the top
+          chrome so there are never duplicate bars. */}
+      {!isCaseRoute && (
+        <Header
+          onReplayBloom={() => setBloomKey((k) => k + 1)}
+          clock={
+            <>
+              <ThermalSkyClock size={clockSize} onSizeChange={setClockSize} expandable={true} />
+              {clockSize === "full" && (
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setClockSize("thumbnail")}
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          }
         />
-      </div>
-      {clockSize === "full" && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-          onClick={() => setClockSize("thumbnail")}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* ── Persistent Top Navigation Notch ─────────────── */}
-      <Header isLoaderDocked={isLoaderDocked} onOpenGarden={openGarden} />
-
-      {/* ── Type Garden bloom: first visit only, or when replayed from the header ── */}
-      {(!hasLoadedGarden || fullscreenGarden) && (
-        <TypeGardenLoader onDockingStart={handleDockingStart} onComplete={handleLoaderComplete} />
       )}
 
       {/* ── Main Multi-Page Route Viewport ──────────────────────────── */}
@@ -116,53 +103,26 @@ function PortfolioContent() {
           <>
             <Hero />
             <StackingProjects />
-            <ExcavationCraterFooter />
+            <HomeBeats />
+            <SiteFooter />
           </>
         )}
 
-        {path === "/about" && (
-          <>
-            <AboutPage externalMusicStyle="pinui" />
-            <ExcavationCraterFooter />
-          </>
-        )}
+        <Suspense fallback={null}>
+          {path === "/404" && (
+            <>
+              <NotFoundPage />
+              <SiteFooter />
+            </>
+          )}
 
-        {path === "/projects" && (
-          <>
-            <ProjectsPage />
-            <ExcavationCraterFooter />
-          </>
-        )}
-
-        {path === "/journal" && (
-          <>
-            <JournalPage />
-            <ExcavationCraterFooter />
-          </>
-        )}
-
-        {path === "/resume" && (
-          <>
-            <ResumePage />
-            <ExcavationCraterFooter />
-          </>
-        )}
-
-        {path === "/lab" && <LabPage />}
-
-        {path === "/404" && (
-          <>
-            <NotFoundPage />
-            <ExcavationCraterFooter />
-          </>
-        )}
-
-        {path.startsWith("/case/") && (
-          <>
-            <CaseStudyPage />
-            <ExcavationCraterFooter />
-          </>
-        )}
+          {path.startsWith("/case/") && (
+            <>
+              <CaseStudyPage />
+              <SiteFooter />
+            </>
+          )}
+        </Suspense>
       </main>
     </>
   );

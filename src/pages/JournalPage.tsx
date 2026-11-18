@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link } from "@/router/Router";
 
 interface Essay {
@@ -63,88 +63,84 @@ export function JournalPage() {
   const [activeEssay, setActiveEssay] = useState<Essay | null>(null);
 
   return (
-    <div className="journal-page relative w-full pt-28 pb-32 px-4 sm:px-8 max-w-5xl mx-auto select-text text-white">
-      {/* Header */}
-      <div className="mb-14">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 mb-3">
-          <Link href="/" className="hover:text-white transition-colors">HOME</Link>
-          <span>/</span>
-          <span className="text-amber-300">FIELD NOTES // JOURNAL</span>
-        </div>
-        <h1 className="font-serif text-[42px] sm:text-[60px] font-normal leading-[1.05] tracking-tight">
-          Field Notes from the Sky
-        </h1>
-        <p className="mt-3 font-sans text-[17px] text-white/70 max-w-2xl font-light leading-relaxed">
-          Distraction-free essays on decision architecture, rapid code prototyping, and visual foundations.
+    <div className="veil-sky relative w-full pb-28 px-4 sm:px-8 select-text text-white">
+      <div className="sky-veil" aria-hidden="true" />
+      <header className="page-head" data-reveal>
+        <p className="atmo-kicker">
+          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <span className="opacity-50"> · Journal</span>
         </p>
-      </div>
+        <h1 className="atmo-title">Field notes from the sky</h1>
+        <p className="atmo-body">
+          Essays on decision architecture, rapid code prototyping, and visual
+          foundations — written between builds.
+        </p>
+      </header>
 
-      {/* 3 Reading Sheets */}
-      <div className="space-y-8">
-        {ESSAYS.map((essay) => (
-          <article
-            key={essay.slug}
-            className="p-8 rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur-xl hover:border-white/25 transition-all group cursor-pointer"
-            onClick={() => setActiveEssay(essay)}
-          >
-            <div className="flex items-center justify-between font-mono text-[10px] text-white/50 mb-3">
-              <span className="px-2.5 py-0.5 rounded bg-white/10 text-amber-300 border border-white/10 uppercase tracking-wider">
-                {essay.tag}
+      <div className="max-w-5xl mx-auto">
+        <div className="row-list" data-reveal>
+          {ESSAYS.map((essay, i) => (
+            <button
+              key={essay.slug}
+              type="button"
+              onClick={() => setActiveEssay(essay)}
+              className="row-item text-left w-full cursor-pointer"
+              data-reveal
+              style={{ ["--rd" as string]: i } as CSSProperties}
+            >
+              <span className="row-index" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
               </span>
-              <span>{essay.date} · {essay.readTime}</span>
-            </div>
-
-            <h2 className="font-serif text-[28px] sm:text-[34px] font-medium text-white group-hover:text-amber-200 transition-colors mb-3 leading-snug">
-              {essay.title}
-            </h2>
-
-            <p className="font-sans text-[15px] text-white/70 font-light leading-relaxed mb-6">
-              {essay.excerpt}
-            </p>
-
-            <div className="flex items-center gap-2 font-mono text-[11px] text-amber-300 group-hover:translate-x-1 transition-transform">
-              <span>Read complete field note</span>
-              <span>→</span>
-            </div>
-          </article>
-        ))}
+              <span>
+                <span className="row-title">{essay.title}</span>
+                <span className="row-tag">{essay.excerpt}</span>
+              </span>
+              <span className="meta-row row-meta-end">
+                <span>{essay.tag}</span>
+                <span>{essay.date}</span>
+                <span>{essay.readTime}</span>
+              </span>
+              <span className="row-arw" aria-hidden="true">→</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Full Essay Reading Modal Sheet */}
+      {/* Essay reader */}
       {activeEssay && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4 sm:p-8">
-          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border border-white/20 bg-neutral-950 p-8 sm:p-12 shadow-2xl">
-            <div className="flex items-center justify-between pb-6 border-b border-white/10 mb-8">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-amber-300">
-                FIELD NOTE // {activeEssay.tag} · {activeEssay.date}
+        <div className="veil-modal" onClick={() => setActiveEssay(null)}>
+          <div
+            className="veil-modal-sheet w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 sm:p-12"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-5 mb-8 border-b border-white/10">
+              <span className="microlabel">
+                {activeEssay.tag} · {activeEssay.date}
               </span>
-              <button
-                type="button"
-                onClick={() => setActiveEssay(null)}
-                className="font-mono text-[12px] px-3 py-1 rounded-full border border-white/20 hover:bg-white/10 text-white/70"
-              >
-                CLOSE ✕
+              <button type="button" className="veil-close" onClick={() => setActiveEssay(null)}>
+                Close
               </button>
             </div>
 
-            <h2 className="font-serif text-[32px] sm:text-[40px] font-medium text-white leading-tight mb-8">
+            <h2 className="font-serif text-[30px] sm:text-[38px] text-white leading-tight mb-8" style={{ fontWeight: 400 }}>
               {activeEssay.title}
             </h2>
 
-            <div className="space-y-6 font-sans text-[16px] text-white/85 font-light leading-relaxed">
+            <div className="space-y-6 max-w-[62ch]">
               {activeEssay.content.map((para, i) => (
-                <p key={i}>{para}</p>
+                <p key={i} className="m-0 text-[15.5px] leading-[1.78] font-light" style={{ color: "var(--ink-soft)" }}>
+                  {para}
+                </p>
               ))}
             </div>
 
-            <div className="mt-12 pt-8 border-t border-white/10 flex justify-between items-center font-mono text-[10px] text-white/40">
-              <span>Rudraksh Singh // Stratosphere Notes</span>
-              <button
-                type="button"
-                onClick={() => setActiveEssay(null)}
-                className="text-amber-300 hover:underline"
-              >
-                Back to Field Notes ↑
+            <div className="mt-12 pt-7 border-t border-white/10 flex justify-between items-center">
+              <span className="font-mono text-[9.5px] uppercase tracking-[0.18em]" style={{ color: "var(--ui-faint)" }}>
+                Rudraksh Singh · {activeEssay.readTime}
+              </span>
+              <button type="button" onClick={() => setActiveEssay(null)} className="link-arrow">
+                <span>More field notes</span>
+                <span className="arw" aria-hidden="true">↑</span>
               </button>
             </div>
           </div>

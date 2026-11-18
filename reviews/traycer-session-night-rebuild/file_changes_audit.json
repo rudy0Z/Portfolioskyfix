@@ -1,0 +1,362 @@
+[
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\lib\\lighting.ts",
+    "operation": "edit",
+    "additions": 8,
+    "deletions": 0,
+    "beforeHash": "26853186994827f1dc44b3e63f263451de25c0fcd52107f99b3a48e0105b9cd5",
+    "afterHash": "b7ed63001f54945b5c424e6ce828b22004669fa0b29bb768268976026c38b27f",
+    "reason": "snapshot",
+    "timestamp": 1794508564110
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 1,
+    "beforeHash": "a7269a9b88136bedc21a38a6521415cf68f88895fc36430c1872975ff0bf8364",
+    "afterHash": "d791e475be726b73b9c9aeb990d7ee9baecbb90db90c5df88d5b5d16bd0d78ef",
+    "reason": "snapshot",
+    "timestamp": 1794508564130
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "ecb39281932fa2865260661fca430681cf8910dd1a4ebfc9c552c44e5c22155c",
+    "afterHash": "e83f6c48f065671d5a9a491535643df72d2163466d0f8dcec8eeaccc7490e245",
+    "reason": "snapshot",
+    "timestamp": 1794508564201
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\index.html",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 2,
+    "beforeHash": "59ca5fc0bbf2e05cb51679425ca85cd8fda9d3218233c5035b5e6215cccf5d25",
+    "afterHash": "1dc167b69d350a7751d4acd39fd6f7772019eb45dc7d529d2f129811d2af81b8",
+    "reason": "snapshot",
+    "timestamp": 1794508564223
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 1,
+    "beforeHash": "d791e475be726b73b9c9aeb990d7ee9baecbb90db90c5df88d5b5d16bd0d78ef",
+    "afterHash": "dc1cf8c69e66989ab8222af1f8f77405f6de75689dc38a8dfee439f4854d6f70",
+    "reason": "snapshot",
+    "timestamp": 1794508564238
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 1,
+    "beforeHash": "dc1cf8c69e66989ab8222af1f8f77405f6de75689dc38a8dfee439f4854d6f70",
+    "afterHash": "2b46034f0056ee279b239f8242bd5ffc9c9be107b4a184e2e72e60c2f1a2f671",
+    "reason": "snapshot",
+    "timestamp": 1794508564336
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 1,
+    "beforeHash": "2b46034f0056ee279b239f8242bd5ffc9c9be107b4a184e2e72e60c2f1a2f671",
+    "afterHash": "d8bc6d561a47981a9b2246d00c1be264a8a1a677c960404d0f184386ed63ed73",
+    "reason": "snapshot",
+    "timestamp": 1794508564436
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "e83f6c48f065671d5a9a491535643df72d2163466d0f8dcec8eeaccc7490e245",
+    "afterHash": "ff4e9a19741716c3817c98c03e047f3919933498715eebee6d486eb1367a42ac",
+    "reason": "snapshot",
+    "timestamp": 1794508633113
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\router\\Router.tsx",
+    "operation": "edit",
+    "additions": 20,
+    "deletions": 2,
+    "beforeHash": "f6780cb30b35422470a7e1e65288f6423a394a21d8e462a6f89d48e763b3696b",
+    "afterHash": "0f54df7b1d6845564c1ba78ef94b7fd3e03c4a170847143db7cef0afcbb95ce2",
+    "reason": "snapshot",
+    "timestamp": 1794508638466
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 2,
+    "beforeHash": "7b51ecda4a43fd2e2a99a883e9aa736449510e9fddac48524f9a7eca3805f8e6",
+    "afterHash": "ef688c616569eba3236da3688538e63cbefd5fc535f92468e39372fa92858527",
+    "reason": "snapshot",
+    "timestamp": 1794508641318
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 19,
+    "deletions": 17,
+    "beforeHash": "ef688c616569eba3236da3688538e63cbefd5fc535f92468e39372fa92858527",
+    "afterHash": "7b45fcbb56ec27ff7ac52ac36129b98e4b29f2ab60682a6d48f424fe37ebf6d1",
+    "reason": "snapshot",
+    "timestamp": 1794508645297
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\HomeBeats.tsx",
+    "operation": "edit",
+    "additions": 28,
+    "deletions": 0,
+    "beforeHash": "c4bf72eb38ff065f69caf56de71cccb89b0b53aa59de7f14c33edb93b93adb97",
+    "afterHash": "31760b01c8d8228f41c5264fcb12506697a7b3a60331ecbe340882312b958e59",
+    "reason": "snapshot",
+    "timestamp": 1794508760112
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\HomeBeats.tsx",
+    "operation": "edit",
+    "additions": 86,
+    "deletions": 0,
+    "beforeHash": "31760b01c8d8228f41c5264fcb12506697a7b3a60331ecbe340882312b958e59",
+    "afterHash": "3d518da8f5c5c239e96dd670199099b383b08efc249a08e69a9505bf10361b5b",
+    "reason": "snapshot",
+    "timestamp": 1794508771907
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\home-beats.css",
+    "operation": "edit",
+    "additions": 199,
+    "deletions": 0,
+    "beforeHash": "5c13157d34503ab12becac8cdd5fd84cc817db0050f766ded5f5d8088d7ae643",
+    "afterHash": "a989077222bbd7ca0af57adfe4aab075c3fab44cb8ac26c29276618d9b9b12b3",
+    "reason": "snapshot",
+    "timestamp": 1794508795020
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\AppData\\Local\\Temp\\opencode\\make_resume.cjs",
+    "operation": "edit",
+    "additions": 44,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "2a671132aad0d4c39ff496a9e7ea815767471d22214e5d3348c8328e484d4153",
+    "reason": "snapshot",
+    "timestamp": 1794508951492
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\caseStudies\\types.ts",
+    "operation": "edit",
+    "additions": 53,
+    "deletions": 9,
+    "beforeHash": "766fbbf5c47be39b6d42cb5ddf2207c94e24e085aebf9b31a9ddf172be43a2d9",
+    "afterHash": "5abc18b73b8d052fb917dc58069818e1a454e56c83eec6fb39920c1f24063e1d",
+    "reason": "snapshot",
+    "timestamp": 1794509051928
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\caseStudies\\sentinel.ts",
+    "operation": "edit",
+    "additions": 213,
+    "deletions": 355,
+    "beforeHash": "2a55a538e177a9fc1fe69275af8a2e56d6ed75293e32a5094d6bfdd6a5c570eb",
+    "afterHash": "d383f558d18a10ad596a03166e6effb80edf7ed432ce9a1e636d75b82567a5b4",
+    "reason": "snapshot",
+    "timestamp": 1794509129632
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\caseStudies\\lokai.ts",
+    "operation": "edit",
+    "additions": 139,
+    "deletions": 293,
+    "beforeHash": "2f0b9ae3aef08e31800cff5c32b5b7bf2b0a49babf61a9f93f0bf7fe1488c216",
+    "afterHash": "e87570281b26d4c147d7fe874c55bb654b0fdbf091644fc8a527ee59539a3b7c",
+    "reason": "snapshot",
+    "timestamp": 1794509196049
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\caseStudies\\feul.ts",
+    "operation": "edit",
+    "additions": 130,
+    "deletions": 217,
+    "beforeHash": "ac5a9d679122936e72ab428febe3c4e4796fe56824ceda7caf261563131cf879",
+    "afterHash": "add248877dd709c6f8b56f8e0efce22714afe45288c13d8d711336c408c30382",
+    "reason": "snapshot",
+    "timestamp": 1794509237288
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\pages\\CaseStudyPage.tsx",
+    "operation": "edit",
+    "additions": 1159,
+    "deletions": 266,
+    "beforeHash": "bdbb88f3872776e7bed0db65cfe02584be6b19b9a8531578a767425ed9eeb125",
+    "afterHash": "b12a9a38780a03a0be69b69f9acb3d2244f5eea84849a23aa6e032596c896ee7",
+    "reason": "snapshot",
+    "timestamp": 1794509479470
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\styles\\case-reader.css",
+    "operation": "edit",
+    "additions": 1667,
+    "deletions": 658,
+    "beforeHash": "ff2131b01e951d8ed7005ce49c3f80afda81d03c16ce224fd8061aaaac60e635",
+    "afterHash": "b47599c8a1f0fa05d9806ca8b3418d1892b375397e15c9d25515d83a10f65a92",
+    "reason": "snapshot",
+    "timestamp": 1794509726613
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\caseStudies\\index.ts",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "f37bc06fa4a5e616465d3d77941ad3f0446ae5ae6070c5f2ba294c8f7d52c7cd",
+    "afterHash": "e6ef81cef3afe9220148b3b79c926a7ba3e162a48bb8929e2476271f59c4a88d",
+    "reason": "snapshot",
+    "timestamp": 1794510069812
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\GardenField.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 2,
+    "beforeHash": "8d437f6f12f119a33f7f5f3d3ef60824d5066b4f32adaaae2da389e5899d733b",
+    "afterHash": "a52bb031a8ce5cff8e7ac4d28e91ae02f96c822659f7240c395b5454a62dd17a",
+    "reason": "snapshot",
+    "timestamp": 1794510400998
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\GardenField.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "a52bb031a8ce5cff8e7ac4d28e91ae02f96c822659f7240c395b5454a62dd17a",
+    "afterHash": "99226315efc3472448840fd8566048da745f41f9bd981e18a96c25b23cf061b1",
+    "reason": "snapshot",
+    "timestamp": 1794510465614
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 22,
+    "deletions": 8,
+    "beforeHash": "7b45fcbb56ec27ff7ac52ac36129b98e4b29f2ab60682a6d48f424fe37ebf6d1",
+    "afterHash": "fa50be437cf4f319ccc8d42afe01a514c20e49ee202496ade8089e511e4242d0",
+    "reason": "snapshot",
+    "timestamp": 1794511138695
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 38,
+    "deletions": 39,
+    "beforeHash": "fa50be437cf4f319ccc8d42afe01a514c20e49ee202496ade8089e511e4242d0",
+    "afterHash": "e3256110230510eddd11c04ae9d31e1e5bd20087ff2db409575338b098bd31ef",
+    "reason": "snapshot",
+    "timestamp": 1794511145773
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 5,
+    "deletions": 5,
+    "beforeHash": "ff4e9a19741716c3817c98c03e047f3919933498715eebee6d486eb1367a42ac",
+    "afterHash": "191adb9b75c2658ae5a81868f0da0b3cc558406f27e27028d8350bc8a7d5a2ab",
+    "reason": "snapshot",
+    "timestamp": 1794511565385
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 15,
+    "deletions": 2,
+    "beforeHash": "191adb9b75c2658ae5a81868f0da0b3cc558406f27e27028d8350bc8a7d5a2ab",
+    "afterHash": "1df356cb878b76c6886fc3921e630c0ac6575226c90a0472e8db3df23031bf3d",
+    "reason": "snapshot",
+    "timestamp": 1794511571729
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 16,
+    "deletions": 2,
+    "beforeHash": "1df356cb878b76c6886fc3921e630c0ac6575226c90a0472e8db3df23031bf3d",
+    "afterHash": "a3a1cfed83d3e81454d7265768f5a47bd28e07ec085308848bd12e638d07fc0a",
+    "reason": "snapshot",
+    "timestamp": 1794511578263
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\SiteFooter.tsx",
+    "operation": "edit",
+    "additions": 6,
+    "deletions": 5,
+    "beforeHash": "ec298df3c11b3676707bf179df75e665ebdcfc8921ce17dcc120807bea75251c",
+    "afterHash": "9cfedb06690169bb3bd7852a8deb11cefabe043282433f0147f38f023f6c09d9",
+    "reason": "snapshot",
+    "timestamp": 1794511581447
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\sections\\SiteFooter.tsx",
+    "operation": "edit",
+    "additions": 4,
+    "deletions": 0,
+    "beforeHash": "9cfedb06690169bb3bd7852a8deb11cefabe043282433f0147f38f023f6c09d9",
+    "afterHash": "9e4c7839b46d93eafb78c2a5d1182655ce53b01bf3e780a32ac84632d85d71b4",
+    "reason": "snapshot",
+    "timestamp": 1794511584650
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\router\\Router.tsx",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 2,
+    "beforeHash": "0f54df7b1d6845564c1ba78ef94b7fd3e03c4a170847143db7cef0afcbb95ce2",
+    "afterHash": "44282755082145e14190d313c64588282a0d02b4b38fa6e8f219c3df22ed77fa",
+    "reason": "snapshot",
+    "timestamp": 1794511586522
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": null,
+    "reason": "capture_failed",
+    "timestamp": 1794511590638
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 28,
+    "beforeHash": "e3256110230510eddd11c04ae9d31e1e5bd20087ff2db409575338b098bd31ef",
+    "afterHash": "d1dc7bc0a647dcc584cbd37cb32bda506640f15aee92830843bebc9991de08c6",
+    "reason": "snapshot",
+    "timestamp": 1794511594236
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 12,
+    "beforeHash": "d1dc7bc0a647dcc584cbd37cb32bda506640f15aee92830843bebc9991de08c6",
+    "afterHash": "759e192a06f6aad0825d66e34aac1cd232cafbb1e9b6a3c796b8aac204a09f6d",
+    "reason": "snapshot",
+    "timestamp": 1794511768148
+  },
+  {
+    "filePath": "D:\\Portfolioskyfix\\HANDOFF.md",
+    "operation": "edit",
+    "additions": 80,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "d52e79d9e336c588dc29034feb48b6f0f12d48296d933aa9a271ca0edab31ccb",
+    "reason": "snapshot",
+    "timestamp": 1794511797734
+  }
+]

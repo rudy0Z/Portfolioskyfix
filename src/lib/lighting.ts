@@ -10,7 +10,7 @@
  * what keeps the whole page feeling lit by a single sky.
  */
 
-import { clamp, lerp, tint, withAlpha, type OKLCH } from "./color";
+import { clamp, lerp, smoothstep, tint, withAlpha, type OKLCH } from "./color";
 import {
   buildStars,
   goldenWeight,
@@ -59,6 +59,13 @@ export interface LightModel {
   golden: number;
   /** 0..1 — twilight influence (sky-side glow). */
   twilight: number;
+  /**
+   * 0..1 — god-ray strength: openings in the cloud deck light the air only
+   * while the sun is low (golden/twilight) and up (night gate). Exported to
+   * CSS as `--sky-shafts` and consumed by the WebGL composite and the garden's
+   * haze glow, so sky shafts and field light breathe together.
+   */
+  shafts: number;
   /** 0..1 — stars visible. */
   starOpacity: number;
 
@@ -100,6 +107,17 @@ export function getLight(t: number): LightModel {
   const twilight = twilightWeight(sun.altitude);
   const night = 1 - clamp((sun.altitude + 0.1) * 2.2);
   const starOpacity = starVisibility(sun.altitude);
+  // Shafts need a low sun (the high-noon beam is invisible in haze) and the
+  // night gate kills them after sunset. User directive: golden-hour window
+  // only (17:00–19:00 with soft edges), strength capped at 0.3 — they read as
+  // a glitch through content pages at full strength.
+  const goldenWindow = smoothstep(16.4, 17.1, t) * (1 - smoothstep(18.9, 19.5, t));
+  const shafts = clamp(
+    smoothstep(-0.02, 0.1, sun.altitude) *
+      clamp(golden * 1.05 + twilight * 0.45, 0, 1) *
+      0.3 *
+      goldenWindow,
+  );
 
   const palette: ResolvedPalette = {
     zenith: oklch(stops.zenith),
@@ -159,6 +177,7 @@ export function getLight(t: number): LightModel {
     daylight,
     golden,
     twilight,
+    shafts,
     starOpacity,
     cloud,
     grade,
@@ -213,6 +232,7 @@ export function applyLight(light: LightModel) {
   set("--daylight", light.daylight.toFixed(3));
   set("--golden", light.golden.toFixed(3));
   set("--twilight", light.twilight.toFixed(3));
+  set("--sky-shafts", light.shafts.toFixed(3));
 
   set("--cloud-key-x", light.cloud.keyX.toFixed(3));
   set("--cloud-key-y", light.cloud.keyY.toFixed(3));
@@ -258,6 +278,14 @@ export function applyLight(light: LightModel) {
 
   set("--sky-hour", String(light.time));
   set("--sky-clock", clockText(light.time));
+
+  // Diurnal surface theme derived strictly from solar hour t ∈ [0, 24):
+  // Daylight window (06:25 – 18:05) activates frosted alabaster light theme;
+  // Dusk through pre-dawn activates obsidian dark theme.
+  const nextSkyTheme = light.time >= 6.416 && light.time <= 18.083 ? "light" : "dark";
+  if (document.documentElement.dataset.skyTheme !== nextSkyTheme) {
+    document.documentElement.dataset.skyTheme = nextSkyTheme;
+  }
 }
 
 function clockText(t: number) {

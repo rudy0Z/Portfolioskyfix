@@ -1,513 +1,1483 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "@/router/Router";
+import {
+  CASE_ORDER,
+  getCase,
+  type Block,
+  type CasePrototypeConfig,
+  type CaseSection,
+  type CaseStudy,
+} from "@/caseStudies";
+import { ThermalSkyClock } from "@/sky/ThermalSkyClock";
+import { formatTime } from "@/lib/timeOfDay";
+import { useSkyTime } from "@/lib/useTimeOfDay";
+import "./../styles/case-reader.css";
 
-interface DecisionCard {
-  number: string;
-  title: string;
-  tension: string;
-  decision: string;
-  tradeoff: string;
-  metric: string;
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+
+/** Apply an embed block's deepLink to an iframe src: "#…" sets the hash,
+ *  "?…" is spliced in before the hash (replacing any existing query). */
+function withDeepLink(src: string, deepLink?: string): string {
+  if (!deepLink) return src;
+  const hashAt = src.indexOf("#");
+  const noHash = hashAt < 0 ? src : src.slice(0, hashAt);
+  const oldHash = hashAt < 0 ? "" : src.slice(hashAt);
+  if (deepLink.startsWith("#")) return `${noHash}${deepLink}`;
+  const queryAt = noHash.indexOf("?");
+  const base = queryAt < 0 ? noHash : noHash.slice(0, queryAt);
+  return `${base}${deepLink}${oldHash}`;
 }
 
-interface CaseStudyData {
-  id: string;
-  title: string;
-  subtitle: string;
-  role: string;
-  timeline: string;
-  heroKicker: string;
-  summary: string;
-  reelDuration: string;
-  reelTimecode: string;
-  decisions: DecisionCard[];
-  prototypeTitle: string;
-  prototypeDesc: string;
-  prototypeSpecs: string[];
-  renderMotionReelSvg: () => ReactNode;
-  renderMockUiFrame: () => ReactNode;
+function formatCountdown(sec: number): string {
+  const clamped = Math.max(0, Math.floor(sec));
+  const m = Math.floor(clamped / 60);
+  const s = clamped % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-const CASE_STUDIES: Record<string, CaseStudyData> = {
-  sentinel: {
-    id: "sentinel",
-    title: "FlytBase Sentinel",
-    subtitle: "Wildfire Initial-Attack Aerial Command Interface",
-    role: "Lead Systems Architect & Interaction Designer",
-    timeline: "2026 · Challenge Prototype",
-    heroKicker: "EXECUTIVE DOSSIER // AUTONOMOUS INCIDENT COMMAND",
-    summary:
-      "Wildfire initial-attack delays average 48 minutes across dispatch networks. TALON, an autonomous AI copilot, stages evidence from drone thermal sensors; a human incident commander authorizes irreversible strikes within a strict 90-second verification window.",
-    reelDuration: "00:45",
-    reelTimecode: "00:32 / 00:45",
-    decisions: [
-      {
-        number: "01",
-        title: "The 90-Second Human Verification Window",
-        tension: "Fully autonomous drone dispatch risks catastrophic false alarms; full human committee review misses the initial-attack ignition threshold.",
-        decision: "Engineered a rigid 90-second countdown window where TALON compiles evidence and pre-stages the mutual aid dispatch packet. Silence or timeout expires back to watch—authorization is strictly active.",
-        tradeoff: "Operator must be on-duty during active fire weather alerts; automated fallbacks cannot dispatch kinetic assets.",
-        metric: "Reduced dispatch authorization baseline from 48 minutes to 90 seconds with zero accidental launches.",
-      },
-      {
-        number: "02",
-        title: "The Attention Arbiter Telemetry Filter",
-        tension: "Hundreds of real-time telemetry signals (wind vectors, battery cell heat, drone altitude, thermal cameras) cause sensory overwhelm during fire escalation.",
-        decision: "Built a deterministic Attention Arbiter that suppresses non-critical flight telemetry, elevating only thermal flux deltas and fire spread velocity when flame perimeter exceeds safety margins.",
-        tradeoff: "Drone flight parameters are collapsed into subtle status hairlines unless anomalous vibration or motor failure occurs.",
-        metric: "72% reduction in interface noise during critical wildfire containment phases.",
-      },
-      {
-        number: "03",
-        title: "Dual-Fidelity Degradation Ladder (2D Tactical vs. 3D Terrain)",
-        tension: "3D volumetric terrain maps look impressive but choke bandwidth and cause rendering lag on rugged field command tablets with spotty satellite links.",
-        decision: "Constructed a strict degradation ladder: a lightweight 2D tactical world model operates as the immutable substrate, while 3D mesh exploration runs as an on-demand modal with zero visual drift.",
-        tradeoff: "3D terrain photogrammetry is optional rather than permanent foreground chrome.",
-        metric: "Guaranteed 60fps performance on low-spec hardware under adverse field conditions.",
-      },
-    ],
-    prototypeTitle: "TALON Command Console Simulator",
-    prototypeDesc:
-      "Interactive command prototype testing the 90-second verification lifecycle, drone stream switching, and ICS-209 incident debrief generation.",
-    prototypeSpecs: ["Dual EO/IR FLIR Camera", "20-Scene State Machine", "Fastify/SQLite Live Feed"],
-    renderMotionReelSvg: () => (
-      <svg viewBox="0 0 800 450" className="w-full h-full bg-neutral-950 rounded-xl overflow-hidden">
-        {/* Radar and thermal scan preview */}
-        <rect x="0" y="0" width="800" height="450" fill="#090a0f" />
-        <circle cx="400" cy="225" r="160" fill="none" stroke="#059669" strokeWidth="1" strokeDasharray="4 6" opacity="0.3" />
-        <circle cx="400" cy="225" r="100" fill="none" stroke="#059669" strokeWidth="1" opacity="0.5" />
-        <circle cx="400" cy="225" r="40" fill="none" stroke="#059669" strokeWidth="1" opacity="0.7" />
-        {/* Sweep arm */}
-        <line x1="400" y1="225" x2="520" y2="120" stroke="#10b981" strokeWidth="2" />
-        {/* Thermal Hotspots */}
-        <circle cx="480" cy="180" r="18" fill="#ef4444" fillOpacity="0.6" className="animate-pulse" />
-        <circle cx="480" cy="180" r="8" fill="#f97316" />
-        {/* Cockpit HUD Text */}
-        <text x="30" y="40" fill="#10b981" fontFamily="monospace" fontSize="12" fontWeight="bold">
-          TALON MOTION REEL // SCENE 04: ESCALATE TO INITIAL ATTACK
-        </text>
-        <text x="30" y="60" fill="#71717a" fontFamily="monospace" fontSize="10">
-          LOCATION: ANGELUS OAKS · FLIR THERMAL CAMERA #01 · +610°C DETECTED
-        </text>
-      </svg>
-    ),
-    renderMockUiFrame: () => (
-      <div className="p-6 rounded-xl bg-neutral-900 border border-emerald-500/20 text-white font-mono text-[12px] space-y-4">
-        <div className="flex justify-between items-center pb-3 border-b border-white/10">
-          <span className="text-emerald-400 font-bold">● TALON ACTIVE RUNTIME // SIMULATOR READY</span>
-          <span className="text-white/50">INCIDENT ID: #WF-2026-08</span>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 rounded bg-black/50 border border-white/5">
-            <div className="text-[10px] text-white/40 mb-1">DETECTION BASIS</div>
-            <div className="text-white font-semibold">Modeled (Rothermel 1974)</div>
-          </div>
-          <div className="p-3 rounded bg-black/50 border border-white/5">
-            <div className="text-[10px] text-white/40 mb-1">AUTHORIZATION GATE</div>
-            <div className="text-amber-400 font-semibold">Pending Operator Keypress</div>
-          </div>
-        </div>
-        <div className="pt-2">
-          <button
-            type="button"
-            className="w-full py-2.5 rounded bg-emerald-500 text-black font-bold uppercase tracking-wider text-[11px] hover:bg-emerald-400 transition-colors"
-          >
-            Simulate 90s Verification Sequence →
-          </button>
-        </div>
-      </div>
-    ),
-  },
-  lokai: {
-    id: "lokai",
-    title: "LokAI",
-    subtitle: "Deterministic Indian Legal-AI Consumer Protection Guide",
-    role: "Product Designer & Legal Tech Architect",
-    timeline: "2025 · Material+ Top 10 Winner",
-    heroKicker: "EXECUTIVE DOSSIER // DETERMINISTIC LEGAL TRIAGE",
-    summary:
-      "A deterministic consumer-refund guide designed for Indian legal dispute channels. Resolves the consumer intimidation barrier without hallucinating non-existent statutory sections or inventing legal merit.",
-    reelDuration: "00:40",
-    reelTimecode: "00:26 / 00:40",
-    decisions: [
-      {
-        number: "01",
-        title: "Deterministic Boundary Gates (No Fabricated Confidence)",
-        tension: "Standard conversational AI generates plausible-sounding consumer claims that lack legal standing, leading consumers into expensive lost court cases.",
-        decision: "Enforced hard deterministic boundary gates. Disallowed percentage confidence strings and fabricated scores; mandated exact grounded claim counters (`groundedClaims / totalClaims`).",
-        tradeoff: "The system refuses to answer when statutory basis is ambiguous, prioritizing user safety over AI conversation flow.",
-        metric: "100% citation grounding against verified Consumer Protection Act 2019 sections.",
-      },
-      {
-        number: "02",
-        title: "Multilingual Devanagari & Tamil Typography Engine",
-        tension: "Indian legal terms translated verbatim from English produce unreadable jargon or rendering artifacts ('tofu') across Indic scripts.",
-        decision: "Crafted a script-aware typography engine that binds active language to cultural dispute metaphors: 1915 National Consumer Helpline, e-Daakhil filing, and Registered Post with A/D.",
-        tradeoff: "Requires maintaining three localized language packs with verified legal terminology.",
-        metric: "88% comprehension rate in vernacular consumer usability testing.",
-      },
-      {
-        number: "03",
-        title: "Stop-Tier Response Modes with Draft Lock",
-        tension: "Users expect an AI to always generate a formal legal document on demand, even when they have no legal remedy.",
-        decision: "Engineered strict Stop-tier response modes with `draftAllowed: false`. When fact verification proves no statutory violation occurred, draft generation is disabled.",
-        tradeoff: "Reduces user satisfaction in the short term by refusing to produce empty threat letters.",
-        metric: "Zero frivolous or legally hazardous documents generated.",
-      },
-    ],
-    prototypeTitle: "LokAI Consumer Triage Sandbox",
-    prototypeDesc:
-      "Interactive deterministic legal guide simulating the 8 canonical consumer dispute scenarios with Devanagari, Tamil, and English language switching.",
-    prototypeSpecs: ["Consumer Protection Act 2019", "Three-Zone Analysis", "Deterministic Fact Store"],
-    renderMotionReelSvg: () => (
-      <svg viewBox="0 0 800 450" className="w-full h-full bg-slate-950 rounded-xl overflow-hidden">
-        <rect x="0" y="0" width="800" height="450" fill="#020617" />
-        <rect x="40" y="40" width="720" height="370" rx="8" fill="#0f172a" stroke="#1e293b" />
-        <text x="70" y="80" fill="#93c5fd" fontFamily="serif" fontSize="16" fontWeight="bold">
-          LokAI // THREE-ZONE RECOVERY WORKFLOW
-        </text>
-        <rect x="70" y="110" width="200" height="180" rx="4" fill="#1e293b" />
-        <rect x="290" y="110" width="200" height="180" rx="4" fill="#1e293b" />
-        <rect x="510" y="110" width="210" height="180" rx="4" fill="#1e293b" />
-        <text x="80" y="135" fill="#60a5fa" fontFamily="monospace" fontSize="10">ZONE 1: FACT MATRIX</text>
-        <text x="300" y="135" fill="#60a5fa" fontFamily="monospace" fontSize="10">ZONE 2: STATUTORY BASIS</text>
-        <text x="520" y="135" fill="#60a5fa" fontFamily="monospace" fontSize="10">ZONE 3: REMEDY PATH</text>
-      </svg>
-    ),
-    renderMockUiFrame: () => (
-      <div className="p-6 rounded-xl bg-slate-900 border border-blue-500/20 text-white font-mono text-[12px] space-y-4">
-        <div className="flex justify-between items-center pb-3 border-b border-white/10">
-          <span className="text-blue-400 font-bold">● LOKAI STATUTORY ENGINE // DETERMINISTIC GATE</span>
-          <span className="text-white/50">LANG: EN / HI / TA</span>
-        </div>
-        <div className="p-3 rounded bg-black/50 border border-white/5">
-          <div className="text-[10px] text-white/40 mb-1">FACT VERIFICATION STATUS</div>
-          <div className="text-emerald-400 font-semibold">3/3 Grounded Claims Confirmed</div>
-        </div>
-        <button
-          type="button"
-          className="w-full py-2.5 rounded bg-blue-600 text-white font-bold uppercase tracking-wider text-[11px] hover:bg-blue-500 transition-colors"
-        >
-          Review Grounded Statutory Draft →
-        </button>
-      </div>
-    ),
-  },
-  feul: {
-    id: "feul",
-    title: "Feul.AI",
-    subtitle: "Vernacular Voice-Data Marketplace for Multilingual AI",
-    role: "Product Designer & Founding Technologist",
-    timeline: "2025 · Startup Concept",
-    heroKicker: "EXECUTIVE DOSSIER // VERNACULAR DATA PLATFORM",
-    summary:
-      "A crowdsourced voice recording marketplace designed to empower non-English Indian contributors with transparent smart-contract micro-payouts, instant acoustic feedback, and verified dialect contracts.",
-    reelDuration: "00:35",
-    reelTimecode: "00:22 / 00:35",
-    decisions: [
-      {
-        number: "01",
-        title: "Transparent Micro-Payout Escrow Contracts",
-        tension: "Crowdsourcing workers mistrust AI platforms due to delayed batch payments, opaque quality rejections, and zero pay transparency.",
-        decision: "Architected real-time micro-payout contracts. Each audio utterance releases funds instantly to the contributor's UPI wallet upon acoustic verification.",
-        tradeoff: "Requires low transaction overhead and robust client-side validation to prevent fraud.",
-        metric: "100% contributor payout transparency with zero wage disputes.",
-      },
-      {
-        number: "02",
-        title: "Low-Latency Acoustic Waveform Validation (<120ms)",
-        tension: "Budget Android devices have varying microphone hardware, leading to clipping, background hiss, or silent recordings.",
-        decision: "Built a client-side Web Audio waveform analyzer measuring SNR (signal-to-noise ratio), clipping peaks, and phoneme duration in real time.",
-        tradeoff: "Higher initial JavaScript bundle size for the audio DSP engine.",
-        metric: "65% drop in rejected submissions on budget smartphones.",
-      },
-      {
-        number: "03",
-        title: "Tiered Contributor Reputation & Dialect Lineage",
-        tension: "AI labs require high-purity regional dialects (e.g. Surti vs. Kathiawadi Gujarati), but contributors often claim dialects they don't speak natively.",
-        decision: "Implemented a multi-tiered contributor reputation system where peer validation and phonetic variance tests verify linguistic lineage before unlocks.",
-        tradeoff: "Higher onboarding friction for new dialect contributors.",
-        metric: "94.8% phoneme authenticity verified by computational linguists.",
-      },
-    ],
-    prototypeTitle: "Feul Vernacular Recording Studio",
-    prototypeDesc:
-      "Interactive contributor studio showcasing real-time acoustic noise gates, dynamic waveform feedback, and instant escrow settlement.",
-    prototypeSpecs: ["Web Audio API DSP", "24 Indian Dialects", "Instant UPI Micro-payouts"],
-    renderMotionReelSvg: () => (
-      <svg viewBox="0 0 800 450" className="w-full h-full bg-stone-950 rounded-xl overflow-hidden">
-        <rect x="0" y="0" width="800" height="450" fill="#0c0a09" />
-        <rect x="40" y="40" width="720" height="370" rx="8" fill="#1c1917" stroke="#292524" />
-        <text x="70" y="80" fill="#fdba74" fontFamily="sans-serif" fontSize="16" fontWeight="bold">
-          FEUL.AI // REAL-TIME ACOUSTIC WAVEFORM STUDIO
-        </text>
-        {/* Animated wave bars */}
-        <g transform="translate(70, 160)">
-          {Array.from({ length: 32 }, (_, i) => (
-            <rect
-              key={i}
-              x={i * 20}
-              y={60 - (i % 2 === 0 ? 30 : 50)}
-              width="10"
-              height={i % 2 === 0 ? 60 : 100}
-              rx="4"
-              fill="#f97316"
-              opacity="0.8"
-            />
-          ))}
-        </g>
-      </svg>
-    ),
-    renderMockUiFrame: () => (
-      <div className="p-6 rounded-xl bg-stone-900 border border-orange-500/20 text-white font-mono text-[12px] space-y-4">
-        <div className="flex justify-between items-center pb-3 border-b border-white/10">
-          <span className="text-orange-400 font-bold">● FEUL AUDIO DSP // ACOUSTIC GATE CLEAN</span>
-          <span className="text-white/50">SNR: 34dB</span>
-        </div>
-        <div className="p-3 rounded bg-black/50 border border-white/5">
-          <div className="text-[10px] text-white/40 mb-1">PROMPT BALANCE</div>
-          <div className="text-amber-300 font-semibold">₹360.00 Ready for Dispatch</div>
-        </div>
-        <button
-          type="button"
-          className="w-full py-2.5 rounded bg-orange-600 text-white font-bold uppercase tracking-wider text-[11px] hover:bg-orange-500 transition-colors"
-        >
-          Execute Smart Contract Payout →
-        </button>
-      </div>
-    ),
-  },
-};
+interface HarnessPlayerWindow extends Window {
+  player?: {
+    authorize?: () => void;
+  };
+}
 
-export function CaseStudyPage() {
-  const { path } = useRoute();
-  const caseId = path.replace(/^\/case\//, "");
-  const data = CASE_STUDIES[caseId] || CASE_STUDIES.sentinel;
-  const [isPlayingReel, setIsPlayingReel] = useState(false);
-  const [showPrototypeModal, setShowPrototypeModal] = useState(false);
+/* ── Full Prototype Veil Modal ───────────────────────────────────────────── */
+
+function PrototypeVeilModal({
+  proto,
+  initialDeepLink,
+  onClose,
+}: {
+  proto: CasePrototypeConfig;
+  initialDeepLink?: string;
+  onClose: () => void;
+}) {
+  const [activeDeepLink, setActiveDeepLink] = useState<string | undefined>(
+    initialDeepLink ?? proto.deepLink,
+  );
+  const fullSrc = withDeepLink(proto.src, activeDeepLink);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
-    <div className="case-study-page relative w-full pt-28 pb-32 px-4 sm:px-8 max-w-5xl mx-auto select-text text-white">
-      {/* Header Breadcrumb */}
-      <div className="mb-12">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 mb-3">
-          <Link href="/" className="hover:text-white transition-colors">HOME</Link>
-          <span>/</span>
-          <Link href="/projects" className="hover:text-white transition-colors">PROJECTS</Link>
-          <span>/</span>
-          <span className="text-amber-300">{data.id.toUpperCase()}</span>
-        </div>
-        <div className="font-mono text-[10.5px] uppercase tracking-wider text-amber-400 mb-2">
-          {data.heroKicker}
-        </div>
-        <h1 className="font-serif text-[42px] sm:text-[62px] font-normal leading-[1.05] tracking-tight">
-          {data.title}
-        </h1>
-        <p className="mt-2 font-sans text-[20px] text-white/80 font-light">
-          {data.subtitle}
-        </p>
-
-        {/* Metadata Strip */}
-        <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap gap-6 font-mono text-[11px] text-white/50">
-          <div>ROLE: <span className="text-white/80">{data.role}</span></div>
-          <div>TIMELINE: <span className="text-white/80">{data.timeline}</span></div>
-        </div>
-      </div>
-
-      {/* Summary Narrative */}
-      <div className="p-8 rounded-2xl border border-white/15 bg-neutral-900/70 backdrop-blur-xl mb-16">
-        <div className="font-mono text-[9px] uppercase tracking-widest text-white/40 mb-2">
-          EXECUTIVE SUMMARY // CORE MISSION
-        </div>
-        <p className="font-sans text-[16px] text-white/90 font-light leading-relaxed">
-          {data.summary}
-        </p>
-      </div>
-
-      {/* ============================================================== */}
-      {/* TIER 1: 30-SECOND MOTION REEL PLACEHOLDER                      */}
-      {/* ============================================================== */}
-      <section className="mb-20">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>TIER 01 // 30-SECOND MOTION REEL PLACEHOLDER</span>
-          </div>
-          <span className="font-mono text-[10px] text-white/40">
-            4K UHD · 60FPS · SPATIAL AUDIO
-          </span>
-        </div>
-
-        {/* Video Player Frame Container */}
-        <div className="relative aspect-[16/9] w-full rounded-2xl border border-white/20 bg-black overflow-hidden shadow-2xl flex flex-col justify-between p-4">
-          {/* Active SVG Reel Simulation */}
-          <div className="absolute inset-0 z-0">
-            {data.renderMotionReelSvg()}
+    <div
+      className="veil-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={proto.title}
+      onClick={onClose}
+    >
+      <div
+        className="veil-modal-sheet cs-embed-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cs-embed-modal-head">
+          <div className="cs-embed-modal-titlegroup">
+            <span className="cs-embed-live" aria-hidden="true" />
+            <p className="cs-embed-title">{proto.title}</p>
           </div>
 
-          {/* Scanline Texture Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent pointer-events-none opacity-50" />
+          {proto.scenarios && proto.scenarios.length > 0 && (
+            <div className="cs-modal-scenarios" role="group" aria-label="Prototype scenarios">
+              {proto.scenarios.map((sc) => {
+                const isActive = activeDeepLink === sc.deepLink;
+                return (
+                  <button
+                    key={sc.label}
+                    type="button"
+                    className={`cs-modal-scenario-btn ${isActive ? "is-active" : ""}`}
+                    aria-pressed={isActive}
+                    onClick={() => setActiveDeepLink(sc.deepLink)}
+                  >
+                    {sc.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Player Top HUD */}
-          <div className="relative z-10 flex justify-between items-center font-mono text-[10px] text-white/70 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-            <span>REEL: {data.title.toUpperCase()}</span>
-            <span>TIMECODE: {data.reelTimecode}</span>
-          </div>
-
-          {/* Center Play Button Overlay */}
-          <div className="relative z-10 self-center">
-            <button
-              type="button"
-              onClick={() => setIsPlayingReel(!isPlayingReel)}
-              className="h-16 w-16 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md border border-white/40 flex items-center justify-center text-white text-xl transition-all shadow-2xl hover:scale-105"
+          <div className="cs-embed-modal-actions">
+            <a
+              href={fullSrc}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cs-embed-standalone"
             >
-              {isPlayingReel ? "❚❚" : "▶"}
+              Standalone ↗
+            </a>
+            <button type="button" className="veil-close" onClick={onClose}>
+              Close ✕
             </button>
           </div>
-
-          {/* Player Bottom Scrub Bar */}
-          <div className="relative z-10 flex flex-col gap-2 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-white/10">
-            <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-400 transition-all duration-300"
-                style={{ width: isPlayingReel ? "75%" : "45%" }}
-              />
-            </div>
-            <div className="flex justify-between items-center font-mono text-[9.5px] text-white/50">
-              <span>{isPlayingReel ? "PLAYING MOTION REEL..." : "CLICK TO PLAY"}</span>
-              <span>{data.reelDuration}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================== */}
-      {/* TIER 2: 3 EXECUTIVE DECISION CARDS                             */}
-      {/* ============================================================== */}
-      <section className="mb-20">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-300 mb-6 flex items-center gap-2">
-          <span>TIER 02 // THREE HARDEST ARCHITECTURAL DECISIONS</span>
-          <span className="flex-1 h-[1px] bg-white/10" />
         </div>
 
-        <div className="space-y-8">
-          {data.decisions.map((dec) => (
-            <div
-              key={dec.number}
-              className="p-8 rounded-2xl border border-white/15 bg-neutral-900/80 backdrop-blur-xl shadow-xl space-y-5"
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[12px] font-bold text-amber-400">
-                  DECISION {dec.number}
-                </span>
-                <span className="flex-1 h-[1px] bg-white/10" />
-              </div>
+        <iframe
+          className="cs-embed-modal-frame"
+          src={fullSrc}
+          title={proto.title}
+          sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+        />
+      </div>
+    </div>
+  );
+}
 
-              <h3 className="font-serif text-[26px] sm:text-[30px] font-medium text-white leading-tight">
-                {dec.title}
-              </h3>
+/* ── Sticky Floating Frosted Top Hub Capsule ─────────────────────────────── */
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5">
-                  <div className="font-mono text-[9px] uppercase tracking-wider text-rose-300 mb-1">
-                    The System Tension
-                  </div>
-                  <p className="font-sans text-[13.5px] text-white/75 font-light leading-relaxed">
-                    {dec.tension}
-                  </p>
-                </div>
+function TopHubCapsule({
+  data,
+  activeIdx,
+  isPastWalkthrough,
+  onSelectChapter,
+  onOpenPrototype,
+}: {
+  data: CaseStudy;
+  activeIdx: number;
+  isPastWalkthrough: boolean;
+  onSelectChapter: (sectionId: string) => void;
+  onOpenPrototype: (deepLink?: string) => void;
+}) {
+  const skyTime = useSkyTime();
+  const formattedClock = formatTime(skyTime);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [clockOpen, setClockOpen] = useState(false);
+  const hoverTimerRef = useRef<number>(0);
+  const hubRef = useRef<HTMLDivElement>(null);
 
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5">
-                  <div className="font-mono text-[9px] uppercase tracking-wider text-emerald-300 mb-1">
-                    The Architectural Decision
-                  </div>
-                  <p className="font-sans text-[13.5px] text-white/75 font-light leading-relaxed">
-                    {dec.decision}
-                  </p>
-                </div>
-              </div>
+  const activeSection = data.sections[activeIdx] ?? data.sections[0];
 
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 font-mono text-[11px]">
-                <div className="text-white/60">
-                  <strong className="text-white">Trade-off Accepted:</strong> {dec.tradeoff}
-                </div>
-                <div className="px-3 py-1 rounded bg-amber-400/10 text-amber-300 border border-amber-400/30 whitespace-nowrap">
-                  {dec.metric}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+  const clearHoverTimer = () => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = 0;
+    }
+  };
 
-      {/* ============================================================== */}
-      {/* TIER 3: LIVE PROTOTYPE MODAL PLACEHOLDER                       */}
-      {/* ============================================================== */}
-      <section className="p-8 rounded-2xl border border-white/15 bg-neutral-950/80 backdrop-blur-xl shadow-2xl">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-sky-400 mb-2">
-          TIER 03 // LIVE PROTOTYPE RUNTIME EMBED
-        </div>
-        <h3 className="font-serif text-[28px] font-medium text-white mb-2">
-          {data.prototypeTitle}
-        </h3>
-        <p className="font-sans text-[14px] text-white/70 font-light leading-relaxed mb-6">
-          {data.prototypeDesc}
-        </p>
+  const handleMouseEnterDropdown = () => {
+    clearHoverTimer();
+    if (window.matchMedia("(hover: hover)").matches) {
+      setClockOpen(false);
+      setMenuOpen(true);
+    }
+  };
 
-        {/* Mock UI Frame Placeholder */}
-        <div className="mb-6">
-          {data.renderMockUiFrame()}
-        </div>
+  const handleMouseLeaveDropdown = () => {
+    clearHoverTimer();
+    if (window.matchMedia("(hover: hover)").matches) {
+      hoverTimerRef.current = window.setTimeout(() => {
+        setMenuOpen(false);
+      }, 170);
+    }
+  };
 
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10">
-          <div className="flex flex-wrap gap-2">
-            {data.prototypeSpecs.map((spec) => (
-              <span
-                key={spec}
-                className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 font-mono text-[10px] text-white/70"
-              >
-                {spec}
-              </span>
-            ))}
-          </div>
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setClockOpen(false);
+      }
+    };
+    const onDocClick = (e: MouseEvent) => {
+      if (hubRef.current && !hubRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDocClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDocClick);
+      clearHoverTimer();
+    };
+  }, []);
 
+  const handleBackToWork = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.hash = "/";
+    let tries = 12;
+    const scrollWork = () => {
+      const target = document.getElementById("work");
+      if (target) target.scrollIntoView({ behavior: "instant" });
+      else if (tries-- > 0) window.setTimeout(scrollWork, 120);
+    };
+    window.setTimeout(scrollWork, 100);
+  };
+
+  return (
+    <div
+      ref={hubRef}
+      className={`cs-hub-anchor ${isPastWalkthrough ? "is-folded" : ""}`}
+      role="navigation"
+      aria-label="Case study navigation hub"
+    >
+      <div className="cs-hub-capsule">
+        {/* 1. Back to Work */}
+        <a href="/#work" onClick={handleBackToWork} className="cs-hub-back">
+          <span aria-hidden="true">←</span> Work
+        </a>
+
+        <span className="cs-hub-sep" aria-hidden="true" />
+
+        {/* 2. Chapter Dropdown Trigger (State 1 = Case Name · State 2 = #N · Chapter ▾) */}
+        <div
+          className="cs-hub-chapter-wrap"
+          onMouseEnter={handleMouseEnterDropdown}
+          onMouseLeave={handleMouseLeaveDropdown}
+        >
           <button
             type="button"
-            onClick={() => setShowPrototypeModal(true)}
-            className="px-6 py-2.5 rounded-full bg-white text-black font-sans text-[12px] font-semibold hover:bg-amber-300 transition-colors shadow-lg"
+            className={`cs-hub-chapter-btn ${isPastWalkthrough ? "is-folded" : ""} ${
+              menuOpen ? "is-open" : ""
+            }`}
+            aria-expanded={menuOpen}
+            aria-haspopup="true"
+            onClick={() => {
+              setClockOpen(false);
+              setMenuOpen((v) => !v);
+            }}
           >
-            Launch Fullscreen Prototype Modal ↗
+            {isPastWalkthrough ? (
+              <>
+                <span className="cs-hub-ch-num">#{activeIdx + 1}</span>
+                <span className="cs-hub-ch-dot" aria-hidden="true">
+                  ·
+                </span>
+                <span className="cs-hub-ch-label">{activeSection?.navLabel}</span>
+              </>
+            ) : (
+              <span className="cs-hub-ch-label">{data.fullName}</span>
+            )}
+            <span className="cs-hub-caret" aria-hidden="true">
+              ▾
+            </span>
           </button>
-        </div>
-      </section>
 
-      {/* Fullscreen Interactive Prototype Modal */}
-      {showPrototypeModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 sm:p-8">
-          <div className="relative w-full max-w-4xl max-h-[90vh] rounded-3xl border border-white/20 bg-neutral-950 p-6 sm:p-8 shadow-2xl flex flex-col justify-between">
-            <div className="flex justify-between items-center pb-4 border-b border-white/10">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400 font-bold">
-                {data.title.toUpperCase()} // PROTOTYPE RUNTIME PREVIEW
+          {menuOpen && (
+            <div className="cs-hub-dropdown" role="menu" aria-label="Chapters in this case study">
+              <div className="cs-hub-dropdown-head">
+                <span>Story chapters</span>
+                <span>
+                  {String(activeIdx + 1).padStart(2, "0")} /{" "}
+                  {String(data.sections.length).padStart(2, "0")}
+                </span>
+              </div>
+              <ol className="cs-hub-dropdown-list">
+                {data.sections.map((sec, i) => {
+                  const isCurrent = i === activeIdx;
+                  const isPast = i < activeIdx;
+                  return (
+                    <li key={sec.id}>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        aria-current={isCurrent ? "location" : undefined}
+                        className={`cs-hub-dropdown-item ${isCurrent ? "is-active" : ""} ${
+                          isPast ? "is-past" : ""
+                        }`}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          onSelectChapter(sec.id);
+                        }}
+                      >
+                        <span className="cs-hub-item-no">{sec.no}</span>
+                        <span className="cs-hub-item-title">{sec.navLabel}</span>
+                        <span className="cs-hub-item-state" aria-hidden="true">
+                          {isCurrent ? "●" : isPast ? "✓" : ""}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+        </div>
+
+        <span className="cs-hub-sep" aria-hidden="true" />
+
+        {/* 3. Full Prototype Modal Trigger */}
+        <button
+          type="button"
+          className="cs-hub-proto-btn"
+          onClick={() => {
+            setMenuOpen(false);
+            setClockOpen(false);
+            onOpenPrototype();
+          }}
+        >
+          <span className="cs-hub-proto-full">Full Prototype</span>
+          <span className="cs-hub-proto-short">Prototype</span>
+          <span aria-hidden="true">↗</span>
+        </button>
+
+        <span className="cs-hub-sep" aria-hidden="true" />
+
+        {/* 4. Miniature Live Solar Sky Clock Pill */}
+        <button
+          type="button"
+          className={`cs-hub-clock-btn ${clockOpen ? "is-open" : ""}`}
+          aria-expanded={clockOpen}
+          aria-label={`Solar sky time ${formattedClock} — click to adjust`}
+          onClick={() => {
+            setMenuOpen(false);
+            setClockOpen((v) => !v);
+          }}
+        >
+          <span className="cs-hub-sun-orb" aria-hidden="true" />
+          <span className="cs-hub-clock-text">{formattedClock}</span>
+        </button>
+      </div>
+
+      {/* Expandable Solar Horizon Instrument Popover */}
+      {clockOpen && (
+        <>
+          <div
+            className="cs-hub-clock-backdrop"
+            onClick={() => setClockOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="cs-hub-clock-popover">
+            <ThermalSkyClock
+              size="full"
+              expandable={true}
+              onSizeChange={(next) => {
+                if (next === "thumbnail") setClockOpen(false);
+              }}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Task 2: Sentinel Interactive 90-Second Verification Stage ────────────── */
+
+type SentinelStageBlock = Extract<Block, { t: "sentinel-stage" }>;
+type ScenarioMode = "active" | "reverted";
+type GateDecisionState = "open" | "authorized" | "lapsed";
+
+function SentinelVerificationStage({
+  b,
+  onOpenFullModal,
+}: {
+  b: SentinelStageBlock;
+  onOpenFullModal: (deepLink?: string) => void;
+}) {
+  const [scenario, setScenario] = useState<ScenarioMode>("active");
+  const [gateState, setGateState] = useState<GateDecisionState>("open");
+  const [secondsLeft, setSecondsLeft] = useState<number>(42);
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const [embedOk, setEmbedOk] = useState<boolean | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const activeIframeSrc = withDeepLink(
+    b.embedSrc,
+    scenario === "active" ? b.activeDeepLink : b.revertedDeepLink,
+  );
+
+  // Verify harness.html availability
+  useEffect(() => {
+    let alive = true;
+    fetch(b.embedSrc, { method: "HEAD" })
+      .then((r) => {
+        if (alive) setEmbedOk(r.ok);
+      })
+      .catch(() => {
+        if (alive) setEmbedOk(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [b.embedSrc]);
+
+  // Gently begin live countdown 2.6s after scrolling into view (unless reduced motion)
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let startDelay = 0;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        window.clearTimeout(startDelay);
+        if (entry.isIntersecting && scenario === "active" && gateState === "open") {
+          startDelay = window.setTimeout(() => {
+            setTimerRunning(true);
+          }, 2600);
+        } else {
+          setTimerRunning(false);
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(startDelay);
+    };
+  }, [scenario, gateState]);
+
+  // Countdown tick loop
+  useEffect(() => {
+    if (!timerRunning || scenario !== "active" || gateState !== "open") return;
+    const id = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setTimerRunning(false);
+          setGateState("lapsed");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [timerRunning, scenario, gateState]);
+
+  const handleScenarioSwitch = (next: ScenarioMode) => {
+    setScenario(next);
+    if (next === "active") {
+      setGateState("open");
+      setSecondsLeft(42);
+      setTimerRunning(false);
+    } else {
+      setGateState("lapsed");
+      setSecondsLeft(0);
+      setTimerRunning(false);
+    }
+  };
+
+  const handleAuthorize = useCallback(() => {
+    setScenario("active");
+    setGateState("authorized");
+    setTimerRunning(false);
+    try {
+      const win = iframeRef.current?.contentWindow as HarnessPlayerWindow | null;
+      win?.player?.authorize?.();
+    } catch {
+      /* same-origin guard */
+    }
+  }, []);
+
+  const handleSimulateLapse = () => {
+    setTimerRunning(false);
+    setSecondsLeft(0);
+    setGateState("lapsed");
+  };
+
+  const handleResetGate = () => {
+    setScenario("active");
+    setGateState("open");
+    setSecondsLeft(42);
+    setTimerRunning(false);
+  };
+
+  const isRevertedView = scenario === "reverted" || gateState === "lapsed";
+
+  return (
+    <div ref={stageRef} className="cs-col" data-reveal>
+      <figure className="cs-fig cs-sentinel-stage">
+        <div className="cs-sentinel-shell">
+          {/* Top Console Bar & Scenario Switcher */}
+          <div className="cs-sentinel-topbar">
+            <div className="cs-sentinel-brand">
+              <span
+                className={`cs-sentinel-led ${
+                  gateState === "authorized"
+                    ? "is-ok"
+                    : isRevertedView
+                      ? "is-reverted"
+                      : "is-alert"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="cs-sentinel-kicker">
+                SENTINEL INCIDENT CONSOLE · 90S VERIFICATION STATE MACHINE
               </span>
+            </div>
+
+            <div
+              className="cs-sentinel-tabs"
+              role="tablist"
+              aria-label="Verification gate scenarios"
+            >
               <button
                 type="button"
-                onClick={() => setShowPrototypeModal(false)}
-                className="font-mono text-[12px] px-3 py-1 rounded-full border border-white/20 text-white/70 hover:bg-white/10"
+                role="tab"
+                aria-selected={scenario === "active"}
+                className={`cs-sentinel-tab ${scenario === "active" ? "is-active" : ""}`}
+                onClick={() => handleScenarioSwitch("active")}
               >
-                EXIT SIMULATOR ✕
+                Hotspot +620°C (Active Ignition)
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={scenario === "reverted"}
+                className={`cs-sentinel-tab ${scenario === "reverted" ? "is-active" : ""}`}
+                onClick={() => handleScenarioSwitch("reverted")}
+              >
+                Timeout / False Alert Reverted
+              </button>
+            </div>
+          </div>
+
+          {/* Dual FLIR Thermal + RGB Feeds */}
+          <div className="cs-sentinel-feeds">
+            {/* Feed 1: Optical RGB */}
+            <div className="cs-feed-card">
+              <div className="cs-feed-head">
+                <span className="cs-feed-tag">RGB ELECTRO-OPTICAL · FT-01 KITE</span>
+                <span className="cs-prov-chip">MEA</span>
+              </div>
+              <div className="cs-feed-viewport" style={{ aspectRatio: "16 / 10" }}>
+                <img
+                  src={
+                    scenario === "active"
+                      ? "/case/sentinel/detect.png"
+                      : "/case/sentinel/falsepos.png"
+                  }
+                  alt={
+                    scenario === "active"
+                      ? "FT-01 optical drone feed over Encinal Canyon ridge showing active smoke plume"
+                      : "FT-01 optical drone feed confirming registered permitted burn boundary AU-2214"
+                  }
+                />
+                <div className="cs-feed-hud-overlay" aria-hidden="true">
+                  <span className="cs-feed-hud-tl">ALT 1,200 FT · WIND 14KT NW</span>
+                  <span className="cs-feed-crosshair" />
+                  <span className="cs-feed-hud-br">
+                    {scenario === "active"
+                      ? "ENCINAL RIDGE N · SMOKE COLUMN VERIFIED"
+                      : "PLOT AU-2214 · AGRICULTURAL REGISTRY MATCH"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Feed 2: FLIR Long-Wave Infrared */}
+            <div className="cs-feed-card">
+              <div className="cs-feed-head">
+                <span className="cs-feed-tag">FLIR LWIR 8–14μm · RADIOMETRIC IR</span>
+                <span className="cs-prov-chip">MEA</span>
+              </div>
+              <div
+                className={`cs-feed-viewport cs-feed-viewport--flir ${
+                  scenario === "active" ? "is-hot" : "is-calm"
+                }`}
+                style={{ aspectRatio: "16 / 10" }}
+              >
+                <img
+                  src={
+                    scenario === "active"
+                      ? "/case/sentinel/plan-gate.png"
+                      : "/case/sentinel/falsepos.png"
+                  }
+                  alt={
+                    scenario === "active"
+                      ? "FLIR Long-Wave Infrared thermal feed isolating +620°C crown ignition hotspot"
+                      : "FLIR thermal feed showing contained low-intensity agricultural burn within perimeter"
+                  }
+                />
+                <div className="cs-feed-hud-overlay" aria-hidden="true">
+                  <span className="cs-feed-hud-tl">
+                    {scenario === "active" ? "PEAK CORE +620°C · ΔT +412K" : "CONTAINED +190°C · NO SPREAD"}
+                  </span>
+                  <span
+                    className={`cs-flir-reticle ${scenario === "active" ? "is-hot" : "is-calm"}`}
+                  >
+                    <i />
+                  </span>
+                  <span className="cs-feed-hud-br">
+                    {scenario === "active"
+                      ? "71% SPREAD MATCH [MOD] · 37 HOMES IN PATH"
+                      : "0 FIRE SURFACES DRAWN · WATCH HELD"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Telemetry HUD Decision Gate Bar */}
+          <div className="cs-sentinel-hudbar">
+            <div className="cs-sentinel-packet">
+              <div className="cs-sentinel-packet-top">
+                <span className="cs-sentinel-packet-badge">
+                  {gateState === "authorized"
+                    ? "COMMITTED · PACKET TRANSMITTED"
+                    : isRevertedView
+                      ? "SAFE DEFAULT · REVERTED TO PERIMETER WATCH"
+                      : "CALFIRE MUTUAL AID PACKET PRE-STAGED"}
+                </span>
+                <span className="cs-prov-chip cs-prov-chip--mod">OWNED + REQ</span>
+              </div>
+
+              <p className="cs-sentinel-packet-title">
+                {gateState === "authorized"
+                  ? "Mutual aid & Sheriff WEA requisition authorized by Operator (Asha, IC). Encinal egress routes locked solid cyan."
+                  : scenario === "reverted"
+                    ? "Registry match on Plot AU-2214 (permitted burn). Alert closed cleanly — 0 aerial tankers launched, 0 false alarms."
+                    : gateState === "lapsed"
+                      ? "90-second gate expired without input. Silence ≠ approval: nothing transmitted; escalated to Regional Duty Supervisor."
+                      : "Dual EO + FLIR confirm +620°C crown ignition. OWNED: FT-01/02 orbit · REQ: CalFire Tanker 910 + County Sheriff WEA (917 devices)."}
+              </p>
+            </div>
+
+            <div className="cs-sentinel-gatebox">
+              <div className="cs-sentinel-clockrow">
+                <span className="cs-sentinel-clocklabel">
+                  {gateState === "authorized"
+                    ? "DECISION LOGGED"
+                    : isRevertedView
+                      ? "GATE CLOSED"
+                      : "90S GATE WINDOW"}
+                </span>
+                <output
+                  className={`cs-sentinel-timer ${
+                    gateState === "authorized"
+                      ? "is-ok"
+                      : isRevertedView
+                        ? "is-reverted"
+                        : ""
+                  }`}
+                  aria-live="polite"
+                >
+                  {gateState === "authorized" ? "T+0:13" : formatCountdown(secondsLeft)}
+                </output>
+              </div>
+
+              <div className="cs-sentinel-cta-row">
+                {scenario === "active" && gateState === "open" && (
+                  <>
+                    <button
+                      type="button"
+                      className="cs-authorize-btn"
+                      onClick={handleAuthorize}
+                    >
+                      <kbd className="cs-keycap">1</kbd>
+                      <span>Authorize Mutual Aid</span>
+                      <span aria-hidden="true">↵</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="cs-secondary-hud-btn"
+                      onClick={handleSimulateLapse}
+                      title="Test what happens if the operator does not click before 00:00"
+                    >
+                      Test 00:00 Lapse
+                    </button>
+                  </>
+                )}
+
+                {(gateState !== "open" || scenario === "reverted") && (
+                  <>
+                    <button
+                      type="button"
+                      className="cs-secondary-hud-btn"
+                      onClick={handleResetGate}
+                    >
+                      ↺ Reset 00:42 Gate
+                    </button>
+                    {scenario === "reverted" && (
+                      <button
+                        type="button"
+                        className="cs-authorize-btn"
+                        onClick={() => handleScenarioSwitch("active")}
+                      >
+                        Switch to +620°C Ignition →
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {scenario === "active" && gateState === "open" && (
+                  <button
+                    type="button"
+                    className="cs-timer-toggle-btn"
+                    onClick={() => setTimerRunning((r) => !r)}
+                    aria-label={timerRunning ? "Pause countdown" : "Run live countdown"}
+                    title={timerRunning ? "Pause countdown" : "Run live countdown"}
+                  >
+                    {timerRunning ? "⏸" : "▶"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Embedded Live Three.js Tactical Terrain Harness (public/embed/sentinel/harness.html) */}
+          <div className="cs-sentinel-harness-wrap">
+            <div className="cs-embed-head">
+              <span className="cs-embed-live" aria-hidden="true" />
+              <p className="cs-embed-title">
+                Live Three.js Tactical Terrain Engine ({scenario === "active" ? "WUI Breakout · Gate D" : "Plot AU-2214 False Alert"})
+              </p>
+              <button
+                type="button"
+                className="cs-embed-expand"
+                onClick={() =>
+                  onOpenFullModal(scenario === "active" ? b.activeDeepLink : b.revertedDeepLink)
+                }
+              >
+                Expand Full Console ↗
               </button>
             </div>
 
-            <div className="my-8 flex items-center justify-center min-h-[340px]">
-              {data.renderMockUiFrame()}
-            </div>
+            {embedOk === false ? (
+              <div
+                className="cs-embed-frame cs-embed-missing"
+                style={{ aspectRatio: "16 / 10" }}
+              >
+                <p className="cs-embed-missing-title">Prototype build unavailable</p>
+                <p className="cs-embed-missing-note">
+                  Static build expected at {b.embedSrc}.
+                </p>
+              </div>
+            ) : (
+              <div className="cs-sentinel-iframe-box" style={{ aspectRatio: "16 / 10" }}>
+                <iframe
+                  ref={iframeRef}
+                  key={activeIframeSrc}
+                  className="cs-embed-frame cs-embed-frame--fill"
+                  src={activeIframeSrc}
+                  title="FlytBase Sentinel Tactical Terrain Engine"
+                  sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="pt-4 border-t border-white/10 flex justify-between font-mono text-[10px] text-white/40">
-              <span>Prototype Sandbox: No Network Required</span>
-              <span>Deterministic Mode</span>
+        {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+      </figure>
+    </div>
+  );
+}
+
+/* ── Generic Embed Block ─────────────────────────────────────────────────── */
+
+type EmbedBlockData = Extract<Block, { t: "embed" }>;
+
+function EmbedBlock({
+  b,
+  onOpenModal,
+}: {
+  b: EmbedBlockData;
+  onOpenModal: (deepLink?: string) => void;
+}) {
+  const [ok, setOk] = useState<boolean | null>(null);
+  const src = withDeepLink(b.src, b.deepLink);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(src.split("#")[0], { method: "HEAD" })
+      .then((r) => {
+        if (alive) setOk(r.ok);
+      })
+      .catch(() => {
+        if (alive) setOk(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [src]);
+
+  return (
+    <div className="cs-col" data-reveal>
+      <figure className="cs-fig cs-fig-embed">
+        <div className="cs-plate cs-plate-embed">
+          <div className="cs-embed-head">
+            <span className="cs-embed-live" aria-hidden="true" />
+            <p className="cs-embed-title">{b.title}</p>
+            {ok !== false && (
+              <button
+                type="button"
+                className="cs-embed-expand"
+                onClick={() => onOpenModal(b.deepLink)}
+              >
+                Full Prototype ↗
+              </button>
+            )}
+          </div>
+          {ok === false ? (
+            <div
+              className="cs-embed-frame cs-embed-missing"
+              style={{ aspectRatio: b.aspectRatio ?? "16 / 10" }}
+            >
+              <p className="cs-embed-missing-title">Prototype build unavailable</p>
+              <p className="cs-embed-missing-note">
+                The static build isn’t deployed at {b.src} — this slot stays for it.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="cs-sentinel-iframe-box"
+              style={{ aspectRatio: b.aspectRatio ?? "16 / 10" }}
+            >
+              <iframe
+                className="cs-embed-frame cs-embed-frame--fill"
+                src={src}
+                title={b.title}
+                sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
+        {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+      </figure>
+    </div>
+  );
+}
+
+/* ── Walkthrough Video Slot (#case-walkthrough) ──────────────────────────── */
+
+type VideoBlockData = Extract<Block, { t: "video" }>;
+
+function WalkthroughVideoBlock({
+  b,
+  onOpenPrototype,
+}: {
+  b: VideoBlockData;
+  onOpenPrototype: () => void;
+}) {
+  const hasFullReel = b.src.trim().length > 0;
+  const [previewing, setPreviewing] = useState(false);
+
+  return (
+    <div className="cs-col" data-reveal>
+      <figure className="cs-fig cs-fig-video">
+        <div className="cs-plate cs-plate-video">
+          {hasFullReel ? (
+            <video
+              className="cs-video"
+              src={b.src}
+              poster={b.poster}
+              controls
+              preload="metadata"
+            />
+          ) : (
+            <div className="cs-video-slot" style={{ aspectRatio: "16 / 9" }}>
+              {previewing && b.previewVideo ? (
+                <video
+                  className="cs-video-preview"
+                  src={b.previewVideo}
+                  poster={b.poster}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                b.poster && (
+                  <img
+                    src={b.poster}
+                    alt=""
+                    aria-hidden="true"
+                    loading="eager"
+                  />
+                )
+              )}
+
+              <div className={`cs-video-hold ${previewing ? "is-previewing" : ""}`}>
+                <div className="cs-video-topbar">
+                  {b.plate && <p className="cs-video-plate">{b.plate}</p>}
+                  {b.duration && <span className="cs-video-dur">{b.duration}</span>}
+                </div>
+
+                {!previewing && (
+                  <div className="cs-video-center">
+                    {b.previewVideo ? (
+                      <button
+                        type="button"
+                        className="cs-video-playbtn"
+                        onClick={() => setPreviewing(true)}
+                      >
+                        <span className="cs-video-play-tri" aria-hidden="true" />
+                        <span>Preview Running Console Capture</span>
+                      </button>
+                    ) : (
+                      <span className="cs-video-play" aria-hidden="true" />
+                    )}
+                    {b.foldHint && <p className="cs-video-foldhint">{b.foldHint}</p>}
+                  </div>
+                )}
+
+                <div className="cs-video-footbar">
+                  <span className="cs-video-footlabel">
+                    {previewing
+                      ? "Playing live capture loop · 45s narrated cut in edit"
+                      : "16:9 Walkthrough Stage"}
+                  </span>
+                  <div className="cs-video-footactions">
+                    {previewing && (
+                      <button
+                        type="button"
+                        className="cs-video-mini-btn"
+                        onClick={() => setPreviewing(false)}
+                      >
+                        Hold Poster
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="cs-video-mini-btn"
+                      onClick={onOpenPrototype}
+                    >
+                      Launch Full Prototype ↗
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+      </figure>
+    </div>
+  );
+}
+
+/* ── Block Dispatcher ────────────────────────────────────────────────────── */
+
+function BlockView({
+  b,
+  onOpenPrototype,
+}: {
+  b: Block;
+  onOpenPrototype: (deepLink?: string) => void;
+}) {
+  switch (b.t) {
+    case "lede":
+      return (
+        <div className="cs-col" data-reveal>
+          <p className="cs-lede">{b.text}</p>
+        </div>
+      );
+    case "p":
+      return (
+        <div className="cs-col" data-reveal>
+          <p className="cs-p">{b.text}</p>
+        </div>
+      );
+    case "pull":
+      return (
+        <div className="cs-col" data-reveal>
+          <figure className="cs-pull">
+            <blockquote>{b.text}</blockquote>
+            {b.cite && <figcaption className="cs-pull-cite">{b.cite}</figcaption>}
+          </figure>
+        </div>
+      );
+    case "figure":
+      return (
+        <div
+          className={["cs-figwrap", b.phone ? "cs-col-phone" : "cs-col"].join(" ")}
+          data-reveal
+        >
+          <figure className={b.phone ? "cs-fig cs-fig-phone" : "cs-fig"}>
+            <div
+              className="cs-plate"
+              style={{
+                aspectRatio: b.aspectRatio ?? (b.phone ? "9 / 19.5" : "16 / 9"),
+              }}
+            >
+              <img src={b.src} alt={b.alt} loading="lazy" />
+            </div>
+            {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+          </figure>
+        </div>
+      );
+    case "decision":
+      return (
+        <div className="cs-col" data-reveal>
+          <article className="cs-decision">
+            <p className="cs-decision-label">{b.label}</p>
+            {b.title && <h3 className="cs-decision-title">{b.title}</h3>}
+            <div className="cs-decision-grid">
+              {b.tension && (
+                <div className="cs-facet">
+                  <p className="cs-facet-label">The tension</p>
+                  <p>{b.tension}</p>
+                </div>
+              )}
+              {b.decision && (
+                <div className="cs-facet">
+                  <p className="cs-facet-label">The decision</p>
+                  <p>{b.decision}</p>
+                </div>
+              )}
+            </div>
+            {b.tradeoff && (
+              <div className="cs-facet cs-facet-tradeoff">
+                <p className="cs-facet-label">Trade-off accepted</p>
+                <p>{b.tradeoff}</p>
+              </div>
+            )}
+            {b.proof && (
+              <div className="cs-facet cs-facet-proof">
+                <p className="cs-facet-label">Proof</p>
+                <p>{b.proof}</p>
+              </div>
+            )}
+          </article>
+        </div>
+      );
+    case "disclosure":
+      return (
+        <div className="cs-col" data-reveal>
+          <details className="cs-disclosure">
+            <summary className="cs-disclosure-summary">
+              <span>{b.summary ?? "Read the decision background"}</span>
+              <span className="cs-disclosure-icon" aria-hidden="true">
+                ⌄
+              </span>
+            </summary>
+            <div className="cs-disclosure-body">
+              {b.items.map((it) => (
+                <div key={it.label} className="cs-disclosure-row">
+                  <h4>{it.label}</h4>
+                  <p>{it.text}</p>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      );
+    case "table":
+      return (
+        <div className="cs-col" data-reveal>
+          <figure className="cs-tablewrap">
+            <div className="cs-table-scroll">
+              <table className="cs-table">
+                <thead>
+                  <tr>
+                    {b.head.map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {b.rows.map((row, i) => (
+                    <tr key={i}>
+                      {row.map((cell, j) => (
+                        <td key={j}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+          </figure>
+        </div>
+      );
+    case "timeline":
+      return (
+        <div className="cs-col" data-reveal>
+          {b.title && <p className="cs-timeline-title">{b.title}</p>}
+          <ol className="cs-timeline">
+            {b.items.map((it, i) => (
+              <li key={i} className="cs-timeline-item">
+                <span className="cs-timeline-time">{it.time}</span>
+                <div>
+                  <h4>{it.title}</h4>
+                  <p>{it.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      );
+    case "receipts":
+      return (
+        <div className="cs-col" data-reveal>
+          <div className="cs-receipts">
+            <div className="cs-receipt">
+              <p className="cs-facet-label">{b.leftTitle}</p>
+              <ul>
+                {b.left.map((li) => (
+                  <li key={li}>{li}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="cs-receipt">
+              <p className="cs-facet-label">{b.rightTitle}</p>
+              <ul>
+                {b.right.map((li) => (
+                  <li key={li}>{li}</li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
+      );
+    case "list":
+      return (
+        <div className="cs-col" data-reveal>
+          {b.ordered ? (
+            <ol className="cs-list">
+              {b.items.map((li, i) => (
+                <li key={i}>
+                  <span className="cs-list-no" aria-hidden="true">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>{li}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <ul className="cs-list cs-list-plain">
+              {b.items.map((li) => (
+                <li key={li}>{li}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    case "note":
+      return (
+        <div className="cs-col" data-reveal>
+          <aside className="cs-note">
+            <p className="cs-facet-label">{b.label}</p>
+            <p>{b.text}</p>
+          </aside>
+        </div>
+      );
+    case "chips":
+      return (
+        <div className="cs-col" data-reveal>
+          <div className="cs-chiprow">
+            {b.items.map((c) => (
+              <span key={c} className="cs-chip">
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    case "video":
+      return <WalkthroughVideoBlock b={b} onOpenPrototype={() => onOpenPrototype()} />;
+    case "sentinel-stage":
+      return <SentinelVerificationStage b={b} onOpenFullModal={onOpenPrototype} />;
+    case "embed":
+      return <EmbedBlock b={b} onOpenModal={onOpenPrototype} />;
+    case "anatomy": {
+      const hasPins = b.layers.some(
+        (l) => typeof l.x === "number" && typeof l.y === "number",
+      );
+      return (
+        <div className="cs-col" data-reveal>
+          <figure className={hasPins ? "cs-fig cs-anatomy cs-anatomy-pins" : "cs-fig cs-anatomy"}>
+            <p className="cs-anatomy-title">{b.title}</p>
+            <div className="cs-plate cs-anatomy-plate">
+              <div
+                className="cs-anatomy-shot"
+                style={{ aspectRatio: b.aspectRatio ?? "16 / 9" }}
+              >
+                <img src={b.src} alt={b.alt} loading="lazy" />
+                {hasPins &&
+                  b.layers.map((l, i) =>
+                    typeof l.x === "number" && typeof l.y === "number" ? (
+                      <span
+                        key={i}
+                        className="cs-anatomy-pin"
+                        style={{ left: `${l.x}%`, top: `${l.y}%` }}
+                        aria-hidden="true"
+                      >
+                        {i + 1}
+                      </span>
+                    ) : null,
+                  )}
+              </div>
+            </div>
+            <ol className="cs-anatomy-list">
+              {b.layers.map((l, i) => (
+                <li key={i}>
+                  <span className="cs-anatomy-no" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <h4>{l.label}</h4>
+                    <p>{l.note}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            {b.caption && <figcaption className="cs-cap">{b.caption}</figcaption>}
+          </figure>
+        </div>
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+/* ── Chapter Section Card ────────────────────────────────────────────────── */
+
+function SectionView({
+  s,
+  onOpenPrototype,
+}: {
+  s: CaseSection;
+  onOpenPrototype: (deepLink?: string) => void;
+}) {
+  return (
+    <section id={s.id} className="cs-section">
+      <div className="cs-chapter-card">
+        <div className="cs-col" data-reveal>
+          <div className="cs-sechead">
+            <p className="cs-sectno">
+              <span className="cs-sectno-n">{s.no}</span>
+              <span className="cs-sectno-rule" aria-hidden="true" />
+              <span className="cs-sectno-k">{s.kicker}</span>
+            </p>
+            <h2 className="cs-sectitle">{s.title}</h2>
+            {s.standfirst && <p className="cs-standfirst">{s.standfirst}</p>}
+          </div>
+        </div>
+        {s.blocks.map((b, i) => (
+          <BlockView key={i} b={b} onOpenPrototype={onOpenPrototype} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── Main Centered 920px Case Study Reader ───────────────────────────────── */
+
+export function CaseStudyPage() {
+  const { path, params } = useRoute();
+  const caseId = path.replace(/^\/(case|projects)\//, "").replace(/\/e$/, "");
+  const data = getCase(caseId);
+  const idx = Math.max(0, CASE_ORDER.indexOf(data.id));
+  const nextId = CASE_ORDER[(idx + 1) % CASE_ORDER.length];
+  const next = getCase(nextId);
+
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isPastWalkthrough, setIsPastWalkthrough] = useState(false);
+  const [protoModalOpen, setProtoModalOpen] = useState(() => params.get("prototype") === "1");
+  const [protoDeepLink, setProtoDeepLink] = useState<string | undefined>(undefined);
+
+  // Sync modal state when route query changes (e.g. /projects/sentinel/e)
+  useEffect(() => {
+    if (params.get("prototype") === "1") {
+      setProtoModalOpen(true);
+    }
+  }, [params, data.id]);
+
+  // Reset scroll spy on case switch
+  useEffect(() => {
+    setActiveIdx(0);
+    setIsPastWalkthrough(false);
+  }, [data.id]);
+
+  // Live Scroll-Spy & #case-walkthrough Fold Detector (rAF-throttled)
+  useEffect(() => {
+    let raf = 0;
+    const updateScrollState = () => {
+      raf = 0;
+      const walkthroughEl = document.getElementById("case-walkthrough");
+      if (walkthroughEl) {
+        const rect = walkthroughEl.getBoundingClientRect();
+        // Fold the 6 chapters into the Top Hub Capsule once #case-walkthrough scrolls past
+        setIsPastWalkthrough(rect.bottom <= 130);
+      } else {
+        setIsPastWalkthrough(window.scrollY > 560);
+      }
+
+      const threshold = window.innerHeight * 0.34;
+      let current = 0;
+      for (let i = 0; i < data.sections.length; i++) {
+        const el = document.getElementById(data.sections[i].id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= threshold) {
+          current = i;
+        }
+      }
+      setActiveIdx(current);
+    };
+
+    const onScroll = () => {
+      if (!raf) raf = window.requestAnimationFrame(updateScrollState);
+    };
+
+    updateScrollState();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [data.sections]);
+
+  const scrollToChapter = useCallback((sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  const openPrototypeModal = useCallback((deepLink?: string) => {
+    setProtoDeepLink(deepLink);
+    setProtoModalOpen(true);
+  }, []);
+
+  return (
+    <div className="case-reader" data-case={data.id}>
+      {/* ── State 1 & State 2 Unified Floating Top Hub Capsule ──────────── */}
+      <TopHubCapsule
+        data={data}
+        activeIdx={activeIdx}
+        isPastWalkthrough={isPastWalkthrough}
+        onSelectChapter={scrollToChapter}
+        onOpenPrototype={openPrototypeModal}
+      />
+
+      {/* ── Centered 920px Editorial Stage Over the Persistent 24h Sky ───── */}
+      <div className="cs-stage">
+        {/* State 1: Hero Header + Metadata + Upfront 6-Chapter Overview Grid */}
+        <header className="cs-hero-section">
+          <div className="cs-chapter-card cs-hero-card">
+            <div className="cs-col">
+              <div className="cs-hero-eyebrow-row">
+                <p className="cs-tagline">{data.tagline}</p>
+                <span className="cs-status-pill">
+                  <span className="cs-status-dot" aria-hidden="true" />
+                  {data.status}
+                </span>
+              </div>
+
+              <h1 className="cs-title">
+                {data.title}{" "}
+                {data.titleAccent && (
+                  <span className="cs-title-accent">{data.titleAccent}</span>
+                )}
+              </h1>
+
+              <p className="cs-hook">{data.hookLine}</p>
+
+              {/* 4-Cell Recruiter Metadata Grid */}
+              <div className="cs-meta-grid">
+                {data.metaGrid.map((m) => (
+                  <div key={m.label} className="cs-meta-cell">
+                    <span className="cs-meta-k">{m.label}</span>
+                    <span className="cs-meta-v">{m.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Upfront 6-Chapter Overview Card (Visible immediately before scrolling) */}
+              <nav className="cs-overview-box" aria-label="6-chapter case study overview">
+                <div className="cs-overview-head">
+                  <span className="cs-overview-title">Chapters on this page</span>
+                  <span className="cs-overview-hint">
+                    Folds into Top Hub Capsule past walkthrough ↓
+                  </span>
+                </div>
+                <div className="cs-overview-grid">
+                  {data.sections.map((s, i) => {
+                    const isCurrent = i === activeIdx;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={`cs-overview-item ${isCurrent ? "is-active" : ""}`}
+                        onClick={() => scrollToChapter(s.id)}
+                      >
+                        <span className="cs-overview-no">{s.no}</span>
+                        <span className="cs-overview-label">{s.navLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+
+              {/* Pervasive Honesty Boundary */}
+              <details className="cs-boundary-disclosure">
+                <summary className="cs-boundary-summary">
+                  <span className="cs-boundary-badge">Pervasive Honesty Boundary</span>
+                  <span className="cs-boundary-preview">
+                    Greater Noida, India · IST · Verified benchmarks &amp; scripted scope
+                  </span>
+                  <span className="cs-disclosure-icon" aria-hidden="true">
+                    ⌄
+                  </span>
+                </summary>
+                <p className="cs-boundary-body">{data.boundary}</p>
+              </details>
+            </div>
+          </div>
+        </header>
+
+        {/* 6 Sequential Chapters (01 -> 02 #case-walkthrough -> 03 Stage -> 04 -> 05 -> 06) */}
+        {data.sections.map((s) => (
+          <SectionView key={s.id} s={s} onOpenPrototype={openPrototypeModal} />
+        ))}
+
+        {/* Closing Reflection & Next Case Study Ramp */}
+        <section className="cs-section cs-close-section">
+          <div className="cs-chapter-card cs-close-card">
+            <div className="cs-col" data-reveal>
+              <div className="cs-pull cs-close-pull">
+                <blockquote>{data.closeLine}</blockquote>
+              </div>
+              {data.colophon && <p className="cs-colophon">{data.colophon}</p>}
+
+              <div className="cs-check">
+                <p className="cs-check-label">Verification &amp; Direct Contact</p>
+                <p className="cs-check-line">
+                  Every metric in this case study carries its source basis —{" "}
+                  <a className="cs-check-mail" href="mailto:rudraksh.singhh@outlook.com">
+                    rudraksh.singhh@outlook.com
+                  </a>{" "}
+                  · Greater Noida, India · IST
+                </p>
+              </div>
+
+              <div className="cs-nextrow">
+                <Link href={`/case/${next.id}`} className="cs-next">
+                  <span className="cs-next-meta">
+                    Next case study · {next.index} — {next.fullName}
+                  </span>
+                  <span className="cs-next-title">
+                    {next.title} {next.titleAccent ?? ""}
+                  </span>
+                  <span className="cs-next-arw" aria-hidden="true">
+                    →
+                  </span>
+                </Link>
+
+                <button
+                  type="button"
+                  className="cs-top"
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                >
+                  Back to top ↑
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Expanded Full-Viewport Prototype Veil Modal */}
+      {protoModalOpen && (
+        <PrototypeVeilModal
+          proto={data.prototype}
+          initialDeepLink={protoDeepLink}
+          onClose={() => setProtoModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Remixed Interactive 'Rudraksh' Meadow Footer</title>
+  <link rel="stylesheet" href="../assets/tokens.css" />
+  <style>
+    body {
+      width: 1280px;
+      height: 820px;
+      overflow: hidden;
+      background:
+        radial-gradient(70% 45% at 50% 62%, rgba(251, 191, 36, 0.22), transparent 72%),
+        linear-gradient(180deg, #10192e 0%, #1d2d4e 46%, #3f4f73 74%, #6a6c82 100%);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    /* Floating Asymmetric Contact Bar Above the Open Meadow (Not a corporate 4-col box!) */
+    .contact-bridge {
+      max-width: 1140px;
+      width: 100%;
+      margin: 48px auto 0;
+      padding: 28px 36px;
+      border-radius: 28px;
+      background: rgba(11, 16, 29, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(22px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      z-index: 10;
+    }
+    .cb-left h2 {
+      margin: 4px 0 6px;
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 380;
+    }
+    .cb-left p {
+      margin: 0;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .cb-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-main {
+      padding: 11px 22px;
+      border-radius: 999px;
+      border: none;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 13.5px;
+    }
+    .btn-pill {
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      text-decoration: none;
+    }
+
+    /* Open Air.inc × Pinkesh Remixed Monumental Botanical Wordmark Ground */
+    .meadow-stage {
+      position: relative;
+      height: 490px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .hint-tag {
+      position: absolute;
+      top: 18px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.68);
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+    }
+    .monumental-name {
+      position: relative;
+      z-index: 3;
+      font-family: var(--font-display);
+      font-size: 196px;
+      font-weight: 380;
+      letter-spacing: -0.035em;
+      line-height: 0.82;
+      margin-bottom: 58px;
+      color: rgba(248, 246, 240, 0.94);
+      text-shadow: 0 18px 60px rgba(8, 12, 24, 0.45);
+      user-select: none;
+      display: flex;
+      gap: 2px;
+    }
+    .monumental-name span {
+      display: inline-block;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+    }
+    .monumental-name span:hover {
+      transform: translateY(-10px) rotate(-1.5deg);
+      color: #fef3c7;
+    }
+    canvas#footer-flora {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .bottom-meta {
+      position: relative;
+      z-index: 8;
+      width: 100%;
+      padding: 14px 48px 18px;
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+    }
+  </style>
+</head>
+<body>
+  <div class="contact-bridge">
+    <div class="cb-left">
+      <div style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.16em;color:#34d399;">● OPEN FOR PRODUCT DESIGN &amp; DESIGN ENG · 2026</div>
+      <h2>Have a product or prototype in mind?</h2>
+      <p>Surat, India (IST) · Designing decision-critical interfaces in code.</p>
+    </div>
+    <div class="cb-actions">
+      <button type="button" class="btn-main" id="copy-btn" onclick="this.textContent='✓ Copied rudraksh.singhh@outlook.com'">rudraksh.singhh@outlook.com ⧉</button>
+      <a class="btn-pill" href="#resume">Resume PDF ↗</a>
+      <a class="btn-pill" href="#x">𝕏</a>
+      <a class="btn-pill" href="#gh">GitHub</a>
+      <a class="btn-pill" href="#in">LinkedIn</a>
+    </div>
+  </div>
+
+  <div class="meadow-stage" id="stage">
+    <div class="hint-tag">Hover or click across “Rudraksh” to bloom the meadow</div>
+
+    <div class="monumental-name" aria-label="Rudraksh">
+      <span>R</span><span>u</span><span>d</span><span>r</span><span>a</span><span>k</span><span>s</span><span>h</span>
+    </div>
+
+    <canvas id="footer-flora"></canvas>
+
+    <div class="bottom-meta">
+      <span>RUDRAKSH SINGH · GROWN UNDER A LIVE 24H SKY</span>
+      <button type="button" style="background:none;border:none;color:inherit;">↑ Back to the meadow</button>
+    </div>
+  </div>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const cv = document.getElementById('footer-flora');
+    const ctx = cv.getContext('2d');
+    cv.width = 1280;
+    cv.height = 490;
+
+    let mx = -999, my = -999;
+    const blooms = Array.from({ length: 34 }, (_, i) => ({
+      x: 70 + (i / 33) * 1140 + Math.sin(i * 7) * 14,
+      baseY: 432 + Math.sin(i * 1.9) * 16,
+      stemH: 58 + (i % 5) * 24,
+      ang: 0,
+      vel: 0,
+      scale: 0.72,
+      targetScale: 0.72,
+      kind: i % 3,
+    }));
+
+    stage.addEventListener('pointermove', (e) => {
+      const r = cv.getBoundingClientRect();
+      mx = e.clientX - r.left;
+      my = e.clientY - r.top;
+    });
+    stage.addEventListener('pointerdown', () => {
+      blooms.forEach(b => {
+        if (Math.abs(b.x - mx) < 180) {
+          b.targetScale = 1.35;
+          b.vel += (b.x > mx ? 0.25 : -0.25);
+        }
+      });
+    });
+
+    function tick(now) {
+      const t = now / 1000;
+      ctx.clearRect(0, 0, 1280, 490);
+
+      // Foreground prairie knoll silhouette tucking the bottom of "Rudraksh" into the grass!
+      const grd = ctx.createLinearGradient(0, 355, 0, 490);
+      grd.addColorStop(0, '#234233');
+      grd.addColorStop(0.45, '#152c22');
+      grd.addColorStop(1, '#0b1713');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.moveTo(0, 412);
+      ctx.quadraticCurveTo(340, 378, 640, 398);
+      ctx.quadraticCurveTo(960, 416, 1280, 384);
+      ctx.lineTo(1280, 490);
+      ctx.lineTo(0, 490);
+      ctx.closePath();
+      ctx.fill();
+
+      // Interactive wildflowers & grass blades overlapping the base of "Rudraksh"
+      for (let i = 0; i < blooms.length; i++) {
+        const b = blooms[i];
+        const dist = Math.hypot(b.x - mx, (b.baseY - b.stemH) - my);
+        const near = dist < 130 ? (1 - dist / 130) : 0;
+        const goalScale = near > 0 ? 0.85 + near * 0.55 : 0.72;
+        b.scale += (Math.max(b.targetScale, goalScale) - b.scale) * 0.12;
+        b.targetScale += (0.72 - b.targetScale) * 0.03;
+
+        const breeze = Math.sin(t * 1.6 + i * 0.6) * 0.08 + (near > 0 ? (b.x > mx ? 0.22 : -0.22) * near : 0);
+        b.vel += (breeze - b.ang) * 0.12;
+        b.vel *= 0.84;
+        b.ang += b.vel;
+
+        const hx = b.x + Math.sin(b.ang) * b.stemH;
+        const hy = b.baseY - Math.cos(b.ang) * b.stemH;
+
+        ctx.strokeStyle = '#4fa87c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.baseY + 25);
+        ctx.quadraticCurveTo(b.x + Math.sin(b.ang) * b.stemH * 0.4, b.baseY - b.stemH * 0.45, hx, hy);
+        ctx.stroke();
+
+        const R = 10 * b.scale;
+        const cols = b.kind === 0 ? ['#fbcfe8', '#f59e0b'] : b.kind === 1 ? ['#fde68a', '#b45309'] : ['#c7d2fe', '#fbbf24'];
+        const petals = b.kind === 1 ? 5 : 7;
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.rotate(b.ang);
+        for (let p = 0; p < petals; p++) {
+          ctx.save();
+          ctx.rotate((p / petals) * Math.PI * 2);
+          ctx.fillStyle = cols[0];
+          ctx.beginPath();
+          ctx.ellipse(0, -R * 0.65, R * 0.34, R * 0.65, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = cols[1];
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

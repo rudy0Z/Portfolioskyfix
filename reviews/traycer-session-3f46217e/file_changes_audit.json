@@ -1,0 +1,662 @@
+[
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\public\\favicon.svg",
+    "operation": "edit",
+    "additions": 15,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "a8cd3ec276816f309f480ec9450d7ab2e6dad37c1a3a3741b53e8a41b361e8fc",
+    "reason": "snapshot",
+    "timestamp": 1794440416498
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\index.html",
+    "operation": "edit",
+    "additions": 31,
+    "deletions": 17,
+    "beforeHash": "306e88063ba815820101bc82519b967d96d5b0d8e34133ee62c73a742de45f67",
+    "afterHash": "27425e4cc3907af8da04180471d9eff88dd643f374f36b189a7e3ed34956474a",
+    "reason": "snapshot",
+    "timestamp": 1794440419695
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\package.json",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 4,
+    "beforeHash": "5d2c8aa8ccbc033d53f96200fbf445697c77507c5f23c6e829e336e168bbe20f",
+    "afterHash": "8b5a388ab43f05ecf2cbf664e55df86d860a8a0df252b32fb14f0830ba6f5ac7",
+    "reason": "snapshot",
+    "timestamp": 1794440448785
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\celestial.ts",
+    "operation": "edit",
+    "additions": 5,
+    "deletions": 5,
+    "beforeHash": "9758979a539cd243195b6c4ec8d0ead7e8f2918dc0c3fda9dbab07a40604cccb",
+    "afterHash": "cd36afd4b256a3ef54bf635b0a8a0bc5b357b002a4b02dfe86694c5f4eba28a9",
+    "reason": "snapshot",
+    "timestamp": 1794440496257
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\lighting.ts",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 0,
+    "beforeHash": "1ac47d63b38548e38bb3f6ba0d154e1ac5c3e9c37d2bd19ab2db8a570c315df4",
+    "afterHash": "ce91effb0ad86a30190ce32020c97bd881bed5efc0adae3b597eb002250a2e20",
+    "reason": "snapshot",
+    "timestamp": 1794440497223
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\lighting.ts",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 0,
+    "beforeHash": "ce91effb0ad86a30190ce32020c97bd881bed5efc0adae3b597eb002250a2e20",
+    "afterHash": "a7d0cc9e343a9a75b3028675ff818553ce1c7ebbaaf818afbf5a6c17c23983c5",
+    "reason": "snapshot",
+    "timestamp": 1794440497907
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\lighting.ts",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 0,
+    "beforeHash": "a7d0cc9e343a9a75b3028675ff818553ce1c7ebbaaf818afbf5a6c17c23983c5",
+    "afterHash": "9b1480564016d7a7fb65fc752851dd08dc4fbeabd6d157fae988fc10d175ddaa",
+    "reason": "snapshot",
+    "timestamp": 1794440498556
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\lighting.ts",
+    "operation": "edit",
+    "additions": 10,
+    "deletions": 1,
+    "beforeHash": "9b1480564016d7a7fb65fc752851dd08dc4fbeabd6d157fae988fc10d175ddaa",
+    "afterHash": "08c31a2b30ac8e0de98b670765f436e1fe6ecab0d60b771124a32d904a2faf5a",
+    "reason": "snapshot",
+    "timestamp": 1794440500897
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\webgl\\SkyRenderer.ts",
+    "operation": "edit",
+    "additions": 3,
+    "deletions": 2,
+    "beforeHash": "f8a8b81ce2a32236a2832d28fd56f030d79eac1f9ee74e68ea1120b8ae7277c6",
+    "afterHash": "3f16deebc06b8f56777b41c845cbe76ac9fd0ff404d8d51bb584cf84515e3f02",
+    "reason": "snapshot",
+    "timestamp": 1794440503766
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\webgl\\SkyRenderer.ts",
+    "operation": "edit",
+    "additions": 4,
+    "deletions": 4,
+    "beforeHash": "3f16deebc06b8f56777b41c845cbe76ac9fd0ff404d8d51bb584cf84515e3f02",
+    "afterHash": "cd9ac085aa73a4e1a7284bffe920ed6eae801f38ddfde568c2fb0063ee106418",
+    "reason": "snapshot",
+    "timestamp": 1794440505606
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\webgl\\SkyRenderer.ts",
+    "operation": "edit",
+    "additions": 9,
+    "deletions": 6,
+    "beforeHash": "cd9ac085aa73a4e1a7284bffe920ed6eae801f38ddfde568c2fb0063ee106418",
+    "afterHash": "2e25393c56d248d4ec73ca71eef299fcf192cb6db33d5f2ed566fa7e758c79e7",
+    "reason": "snapshot",
+    "timestamp": 1794440515422
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\CodedSky.tsx",
+    "operation": "edit",
+    "additions": 42,
+    "deletions": 68,
+    "beforeHash": "5ea3717df43f6959e4f072a2c5cb18d8ee99a9fc020903906afccda5556d9c74",
+    "afterHash": "c8afd93cd8069776c304b9b8a86aa2b04b93e509a42417a5ec4eeafbc1d45b1e",
+    "reason": "snapshot",
+    "timestamp": 1794440539092
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\PhotoSky.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "3811a3c57dce57d009a53ff13219f1a52e9229f62867a3c97ef226746a75842e",
+    "afterHash": "12e306ceab7d6bb65db7204f500a1f3eb43db771c7af326a0fd16d4a9c12bbde",
+    "reason": "snapshot",
+    "timestamp": 1794440539895
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\PhotoSky.tsx",
+    "operation": "edit",
+    "additions": 4,
+    "deletions": 4,
+    "beforeHash": "12e306ceab7d6bb65db7204f500a1f3eb43db771c7af326a0fd16d4a9c12bbde",
+    "afterHash": "3ca0ce76ea24a71bbfd185805778861f66ae8b2f83a524ab833467875b47f336",
+    "reason": "snapshot",
+    "timestamp": 1794440542186
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 724,
+    "deletions": 1633,
+    "beforeHash": "e77e4c0533ca16b1baf9b935cfc611aa37614c342b1b236bd1c652a8fc0410dd",
+    "afterHash": "aa0c5b98c594a76be52a47193d14b3de07e52f43e137e9d0d3561c2d4c4fba0f",
+    "reason": "snapshot",
+    "timestamp": 1794440648297
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\TypeGardenLoader.tsx",
+    "operation": "edit",
+    "additions": 560,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "9cee47df1c2bfdf295a047455a0d4f4174b6a25cf4bf3ff471a80bd7f12e8975",
+    "reason": "snapshot",
+    "timestamp": 1794440743241
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 439,
+    "deletions": 1070,
+    "beforeHash": "d7087b7519cc1adf04572ebd8f2666a329ff101b49ecf9628684247ed9f266fe",
+    "afterHash": "815636d70c908bbdb377a390fef4d1ec965c16d64352edc2ceaf508216589322",
+    "reason": "snapshot",
+    "timestamp": 1794440795468
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\SparkleButton.tsx",
+    "operation": "edit",
+    "additions": 145,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "18f08dbfb27d8a363ffc942ba988c9bd4f8e578039aa0a4452d291e0e709ab48",
+    "reason": "snapshot",
+    "timestamp": 1794440840337
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\WildflowerMeadow.tsx",
+    "operation": "edit",
+    "additions": 1006,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "00389b9148fa740e6e0e91522d613396b20593d7ad06cf8b0b8f4bf6a5ab061c",
+    "reason": "snapshot",
+    "timestamp": 1794440976560
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\GardenField.tsx",
+    "operation": "edit",
+    "additions": 175,
+    "deletions": 239,
+    "beforeHash": "9b18b687cbfdc9bdb022a212274aebec8c9853f2552cad3b5b174dd68ad0abb8",
+    "afterHash": "7d52964e46da45fc3a08609726feea599dfcf1b7231efdc76b7e17187fbf681a",
+    "reason": "snapshot",
+    "timestamp": 1794441003615
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\router\\Router.tsx",
+    "operation": "edit",
+    "additions": 258,
+    "deletions": 178,
+    "beforeHash": "6e1228c59da4c13a59f5a90f448b75cb7db16a03fc912935ba1671e310c8a7d5",
+    "afterHash": "7bf4f0717cc60b0e8648c67b083a901ead6e3fe3cbdb3bb352f2f75eea3e6cf3",
+    "reason": "snapshot",
+    "timestamp": 1794441094700
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 174,
+    "deletions": 144,
+    "beforeHash": "3e492c30e1af618e7139b425d23d343552febe917aec5dad71c646007a7ceab9",
+    "afterHash": "21b2963cc70843a3ecb6032e3feb93e62065b7ff04b2839a3e6b43937cb84218",
+    "reason": "snapshot",
+    "timestamp": 1794441107108
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\Header.tsx",
+    "operation": "edit",
+    "additions": 15,
+    "deletions": 18,
+    "beforeHash": "937e5f59f50290a2de4a70d24270b651ff2cd0e2f2be2e11ad080b5aa21430f9",
+    "afterHash": "81b5ce39a6aa3ead8fd502ffc4e6f11b678ce8e0df47aebaf3c61c51e43c6ec2",
+    "reason": "snapshot",
+    "timestamp": 1794441108004
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\ButterflyCursor.tsx",
+    "operation": "edit",
+    "additions": 225,
+    "deletions": 96,
+    "beforeHash": "455116063df2cbfa4b1ca874dec90bb9c257f275a210a239bae6b92f2c953553",
+    "afterHash": "ddb6df0829d34f4d69f8f26ff78f7ea2b4e73d449982752bb23812951b823ea1",
+    "reason": "snapshot",
+    "timestamp": 1794441129805
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\Hero.tsx",
+    "operation": "edit",
+    "additions": 104,
+    "deletions": 97,
+    "beforeHash": "353dd8d524af3a20da5429bceb2d558d17ae1a6a7c0f55529c55f4109e07261d",
+    "afterHash": "c48453a34496ea004c94562dff48cc6265d39ded69f8c3ab6e9e133d17060720",
+    "reason": "snapshot",
+    "timestamp": 1794441154294
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\StackingProjects.tsx",
+    "operation": "edit",
+    "additions": 446,
+    "deletions": 463,
+    "beforeHash": "62f6a49d386612a0c97b9f0d711ef92f8eca4d39b79c66ecfe82e998f52af983",
+    "afterHash": "21e394633fe8e0f6ea3b6e96907816964bf9b9f12a00e4dbd91f051d5785952a",
+    "reason": "snapshot",
+    "timestamp": 1794441206778
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\AboutAndProcessSection.tsx",
+    "operation": "edit",
+    "additions": 355,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "6ea30661a42def59731874e6cadf4a26c5e9139f51b7bb3b85bfdc980d02d517",
+    "reason": "snapshot",
+    "timestamp": 1794441241822
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\ExcavationCraterFooter.tsx",
+    "operation": "edit",
+    "additions": 340,
+    "deletions": 356,
+    "beforeHash": "eb581fe96a4bd0f896ad00abd1b64a968b5237f609260f7081572acd8ad0c366",
+    "afterHash": "015824f0a42ceb7bf6805e85ebd64b233e261776fbd3175a36621856b9156020",
+    "reason": "snapshot",
+    "timestamp": 1794441269315
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\pages\\CaseStudyPage.tsx",
+    "operation": "edit",
+    "additions": 513,
+    "deletions": 514,
+    "beforeHash": "92f7b830712b8ea374be3f0e06a1a91f14823a33959417121f24efc614a9e29b",
+    "afterHash": "3dc92d7aebab42e417839d4a11f7f8c0f95e26ad1c2e925f38d7ac9608ce6a5e",
+    "reason": "snapshot",
+    "timestamp": 1794441344185
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\pages\\PrototypeEmbedPage.tsx",
+    "operation": "edit",
+    "additions": 94,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "4c33fea9b177241c226dc774bf03ec91046d7062683a20729b2fe4dfffa90881",
+    "reason": "snapshot",
+    "timestamp": 1794441352831
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\pages\\NotFoundPage.tsx",
+    "operation": "edit",
+    "additions": 155,
+    "deletions": 188,
+    "beforeHash": "cc069fe647fa376a6fb9988c289e2423383058efb09cac72299022853fecbf18",
+    "afterHash": "caca664027b64eb86cb06ae5ae45317d8e2860d327f24071123cc6a5919ca928",
+    "reason": "snapshot",
+    "timestamp": 1794441370768
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\App.tsx",
+    "operation": "edit",
+    "additions": 108,
+    "deletions": 138,
+    "beforeHash": "19af90f4f0c071e89a80ccbddd64efec418baa980c5b9d474504bbd8055d4f60",
+    "afterHash": "8e239a80a0ed0ffe72bbddda53367799db1d9864bd46ee589962592d44786455",
+    "reason": "snapshot",
+    "timestamp": 1794441377273
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\tests\\e2e\\tier1-features.test.mjs",
+    "operation": "edit",
+    "additions": 422,
+    "deletions": 723,
+    "beforeHash": "3a0844984eea55243de055b60ec223b48b5c00b4cd6e65027c5116849ae8f50f",
+    "afterHash": "65c055156e37cd84cfdc778896055f323f721b2f05877b8ed1c8550a43be105a",
+    "reason": "snapshot",
+    "timestamp": 1794441445390
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "815636d70c908bbdb377a390fef4d1ec965c16d64352edc2ceaf508216589322",
+    "afterHash": "6cb7b32fa473f21e88b81a2964432e794cb8e8f9618b698273e74dacc4d52a40",
+    "reason": "snapshot",
+    "timestamp": 1794441495097
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\README.md",
+    "operation": "edit",
+    "additions": 30,
+    "deletions": 188,
+    "beforeHash": "73f0b4d3c1e64951e75ef496d8f4c18b1416b5daa538176bc718b63e38a6e3b9",
+    "afterHash": "fb3692f9c9c2c879e239ae58a6b5e5aab54d471a6ff7de3973db7929d864a71b",
+    "reason": "snapshot",
+    "timestamp": 1794441503541
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\TEST_READY.md",
+    "operation": "edit",
+    "additions": 14,
+    "deletions": 164,
+    "beforeHash": "ab782e854835c045be7e4abccbd66df57efd6965e9138fed692ba402f827be3a",
+    "afterHash": "d3a78946858f0ae3a5ad97ef3c26f63925a9a6a405c9e72b13a4ab186a67971e",
+    "reason": "snapshot",
+    "timestamp": 1794441503572
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\PhotoSky.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "3ca0ce76ea24a71bbfd185805778861f66ae8b2f83a524ab833467875b47f336",
+    "afterHash": "669fb46bfb242c141182097062a3279f110065ef9c74b45d919dc3d0d37b5c35",
+    "reason": "snapshot",
+    "timestamp": 1794441615998
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "6cb7b32fa473f21e88b81a2964432e794cb8e8f9618b698273e74dacc4d52a40",
+    "afterHash": "d0868661b8742a7728a5182f573cf89c34cbe8543dc122f3d77f7ad53222fe7c",
+    "reason": "snapshot",
+    "timestamp": 1794441682617
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 1,
+    "beforeHash": "d0868661b8742a7728a5182f573cf89c34cbe8543dc122f3d77f7ad53222fe7c",
+    "afterHash": "c8c1ddbec476f703efbdc7e8437504c864398ca56a55bf7166d41ff853e72903",
+    "reason": "snapshot",
+    "timestamp": 1794441757329
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 14,
+    "beforeHash": "c8c1ddbec476f703efbdc7e8437504c864398ca56a55bf7166d41ff853e72903",
+    "afterHash": "fcb7ef63aa51e3455a7c40156bd9e64329dfacafbe2b1dc6b8be343c4137e8f2",
+    "reason": "snapshot",
+    "timestamp": 1794441759324
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 2,
+    "beforeHash": "fcb7ef63aa51e3455a7c40156bd9e64329dfacafbe2b1dc6b8be343c4137e8f2",
+    "afterHash": "cf58246809cf412a29a7184341c51559a9c6beb300035007adbb133e6214fab4",
+    "reason": "snapshot",
+    "timestamp": 1794441760904
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "cf58246809cf412a29a7184341c51559a9c6beb300035007adbb133e6214fab4",
+    "afterHash": "59702ac551adfb2dc16b12207d4407baa58cca06a3e8b3a4dd81184314271cbc",
+    "reason": "snapshot",
+    "timestamp": 1794441761177
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\SparkleButton.tsx",
+    "operation": "edit",
+    "additions": 7,
+    "deletions": 1,
+    "beforeHash": "18f08dbfb27d8a363ffc942ba988c9bd4f8e578039aa0a4452d291e0e709ab48",
+    "afterHash": "840fc0a9a1dc86e5e23faa1b364523d3a67d7f645e498fb959e01ce60c34b712",
+    "reason": "snapshot",
+    "timestamp": 1794441777645
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\WildflowerMeadow.tsx",
+    "operation": "edit",
+    "additions": 6,
+    "deletions": 0,
+    "beforeHash": "00389b9148fa740e6e0e91522d613396b20593d7ad06cf8b0b8f4bf6a5ab061c",
+    "afterHash": "1218a4c2d6251293f79ae7556b5a468983a5dbaf01b497e292d1e74805e98308",
+    "reason": "snapshot",
+    "timestamp": 1794441793949
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\index.html",
+    "operation": "edit",
+    "additions": 7,
+    "deletions": 1,
+    "beforeHash": "27425e4cc3907af8da04180471d9eff88dd643f374f36b189a7e3ed34956474a",
+    "afterHash": "a3df6a9b5a2b9ce858b2ca8f642d6879fa65928dd501cbfe8f0eac8d134e3b93",
+    "reason": "snapshot",
+    "timestamp": 1794468888443
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\main.tsx",
+    "operation": "edit",
+    "additions": 11,
+    "deletions": 13,
+    "beforeHash": "6bf66b9657640870e8551628725d1aa3435230e4e8cadaffdcd982d3ec953ade",
+    "afterHash": "e31bf5e80679f6b0224ceb6047dd0330f90128835cd8087b02d01345667e2a4f",
+    "reason": "snapshot",
+    "timestamp": 1794468889251
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\styles\\global.css",
+    "operation": "edit",
+    "additions": 279,
+    "deletions": 196,
+    "beforeHash": "aa0c5b98c594a76be52a47193d14b3de07e52f43e137e9d0d3561c2d4c4fba0f",
+    "afterHash": "7a48137ce6ad067d0e913b9d545a17ef92d91a14147bbc0584176d2d7fc90259",
+    "reason": "snapshot",
+    "timestamp": 1794469020538
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\type-garden\\TypeGardenCanvas.tsx",
+    "operation": "edit",
+    "additions": 1515,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "21d1f85cd2628ab80607575123835e5c68709b592294092470265fd274a73b09",
+    "reason": "snapshot",
+    "timestamp": 1794469281705
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\TypeGardenLoader.tsx",
+    "operation": "edit",
+    "additions": 34,
+    "deletions": 441,
+    "beforeHash": "9cee47df1c2bfdf295a047455a0d4f4174b6a25cf4bf3ff471a80bd7f12e8975",
+    "afterHash": "cf4b3601f93e02986b78d63079b856435f103b4c3c97ca5281e554d9dee3382c",
+    "reason": "snapshot",
+    "timestamp": 1794469371754
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\ExcavationCraterFooter.tsx",
+    "operation": "edit",
+    "additions": 150,
+    "deletions": 188,
+    "beforeHash": "015824f0a42ceb7bf6805e85ebd64b233e261776fbd3175a36621856b9156020",
+    "afterHash": "76896cc4573ca94979c7cc4dc34ad32ccf97a659547047a1dc01e5eaf0c2564a",
+    "reason": "snapshot",
+    "timestamp": 1794469401590
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\lib\\useScrollReveal.tsx",
+    "operation": "edit",
+    "additions": 48,
+    "deletions": 0,
+    "beforeHash": null,
+    "afterHash": "102ad73139efae27b6445c09aab73e7ccd8ab3c05af0ebc088b709bf809f1e4f",
+    "reason": "snapshot",
+    "timestamp": 1794469437384
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\WildflowerMeadow.tsx",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 0,
+    "beforeHash": "1218a4c2d6251293f79ae7556b5a468983a5dbaf01b497e292d1e74805e98308",
+    "afterHash": "f86737ae3246f9a55a969c371a9a5a4fd29b6560ec77b6d52ef27c4dd02fe013",
+    "reason": "snapshot",
+    "timestamp": 1794469438499
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\WildflowerMeadow.tsx",
+    "operation": "edit",
+    "additions": 6,
+    "deletions": 0,
+    "beforeHash": "f86737ae3246f9a55a969c371a9a5a4fd29b6560ec77b6d52ef27c4dd02fe013",
+    "afterHash": "f4dc2041087a4d76077967c9ccf592aaddfa3bc02760fece254ec712deadbe1a",
+    "reason": "snapshot",
+    "timestamp": 1794469444395
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\WildflowerMeadow.tsx",
+    "operation": "edit",
+    "additions": 2,
+    "deletions": 2,
+    "beforeHash": "f4dc2041087a4d76077967c9ccf592aaddfa3bc02760fece254ec712deadbe1a",
+    "afterHash": "e2656444d5ee5edd3cb2182a4d97976127d57c3934babe0e608d3f5f1ea7b895",
+    "reason": "snapshot",
+    "timestamp": 1794469445091
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\GardenField.tsx",
+    "operation": "edit",
+    "additions": 7,
+    "deletions": 2,
+    "beforeHash": "7d52964e46da45fc3a08609726feea599dfcf1b7231efdc76b7e17187fbf681a",
+    "afterHash": "ba73bd167730786e639e09bebd93df6e19c0a5630c0dea25a28dd7cb28d3658f",
+    "reason": "snapshot",
+    "timestamp": 1794469484332
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\Hero.tsx",
+    "operation": "edit",
+    "additions": 63,
+    "deletions": 24,
+    "beforeHash": "c48453a34496ea004c94562dff48cc6265d39ded69f8c3ab6e9e133d17060720",
+    "afterHash": "aa5b3fd8f6c25b5aff881a0f93c3bbca46a758dcbe8bd752fb2be1c81423877b",
+    "reason": "snapshot",
+    "timestamp": 1794469496796
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sky\\ThermalSkyClock.tsx",
+    "operation": "edit",
+    "additions": 223,
+    "deletions": 170,
+    "beforeHash": "59702ac551adfb2dc16b12207d4407baa58cca06a3e8b3a4dd81184314271cbc",
+    "afterHash": "ed1f062b56b8cf751d66cefc76ab3f981499b68e6875d43786048c84edd598a9",
+    "reason": "snapshot",
+    "timestamp": 1794469589766
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\navigation\\NavigationNotch.tsx",
+    "operation": "edit",
+    "additions": 273,
+    "deletions": 65,
+    "beforeHash": "21b2963cc70843a3ecb6032e3feb93e62065b7ff04b2839a3e6b43937cb84218",
+    "afterHash": "9cc5158b087b0a89f5379b86132d0a7085ef151035b199e819b69f8b5a1826a1",
+    "reason": "snapshot",
+    "timestamp": 1794469717269
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\StackingProjects.tsx",
+    "operation": "edit",
+    "additions": 88,
+    "deletions": 119,
+    "beforeHash": "21e394633fe8e0f6ea3b6e96907816964bf9b9f12a00e4dbd91f051d5785952a",
+    "afterHash": "1de55318b856814e81518e7e876599fc7abb0f40193fe4cc390936e6ea355ae3",
+    "reason": "snapshot",
+    "timestamp": 1794469799040
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\sections\\AboutAndProcessSection.tsx",
+    "operation": "edit",
+    "additions": 196,
+    "deletions": 233,
+    "beforeHash": "6ea30661a42def59731874e6cadf4a26c5e9139f51b7bb3b85bfdc980d02d517",
+    "afterHash": "024b4c5c316566920b565d2fcb95209ec4e3dfa7a28130a7cfb16f67237703e1",
+    "reason": "snapshot",
+    "timestamp": 1794469830388
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\pages\\CaseStudyPage.tsx",
+    "operation": "edit",
+    "additions": 564,
+    "deletions": 307,
+    "beforeHash": "3dc92d7aebab42e417839d4a11f7f8c0f95e26ad1c2e925f38d7ac9608ce6a5e",
+    "afterHash": "95519de507334813d458ac9046c71e35ff5f4ecba10863578e82231f4663c0a9",
+    "reason": "snapshot",
+    "timestamp": 1794470013039
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\pages\\PrototypeEmbedPage.tsx",
+    "operation": "edit",
+    "additions": 16,
+    "deletions": 26,
+    "beforeHash": "4c33fea9b177241c226dc774bf03ec91046d7062683a20729b2fe4dfffa90881",
+    "afterHash": "5aa3d3659094452fc808ca09e462c4d0c2d2ee17ebeaed010ee3eab980fdd6f3",
+    "reason": "snapshot",
+    "timestamp": 1794470140083
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\package.json",
+    "operation": "edit",
+    "additions": 0,
+    "deletions": 2,
+    "beforeHash": "8b5a388ab43f05ecf2cbf664e55df86d860a8a0df252b32fb14f0830ba6f5ac7",
+    "afterHash": "77eda086b444e610f3f525815c0c0016c9d2bebe608d68e33c72a3863027e1f6",
+    "reason": "snapshot",
+    "timestamp": 1794470188809
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\tests\\e2e\\tier1-features.test.mjs",
+    "operation": "edit",
+    "additions": 7,
+    "deletions": 3,
+    "beforeHash": "65c055156e37cd84cfdc778896055f323f721b2f05877b8ed1c8550a43be105a",
+    "afterHash": "2f0a3d67ab9a2a5205c683f01b4e4c9f3ba21680a3e9519e66f6cfeb09b896e8",
+    "reason": "snapshot",
+    "timestamp": 1794470190671
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\tests\\e2e\\tier1-features.test.mjs",
+    "operation": "edit",
+    "additions": 3,
+    "deletions": 2,
+    "beforeHash": "2f0a3d67ab9a2a5205c683f01b4e4c9f3ba21680a3e9519e66f6cfeb09b896e8",
+    "afterHash": "11be17e24ad70f2ca0fc6130e621a944594a8d486afd3fc91eb87114a5c74d3b",
+    "reason": "snapshot",
+    "timestamp": 1794470192359
+  },
+  {
+    "filePath": "C:\\Users\\rudra\\.traycer\\worktrees\\rudy0z__portfolioskyfix\\traycer-humble-penguin-f740310c58f1\\src\\components\\type-garden\\TypeGardenCanvas.tsx",
+    "operation": "edit",
+    "additions": 1,
+    "deletions": 1,
+    "beforeHash": "21d1f85cd2628ab80607575123835e5c68709b592294092470265fd274a73b09",
+    "afterHash": "8e2b51c913d60ffc4a24b1e56d2e68ef12cbaccfafe2d3a89469dff737326c99",
+    "reason": "snapshot",
+    "timestamp": 1794470290150
+  }
+]

@@ -1,0 +1,673 @@
+/* ==========================================================================
+   home-beats.css — the six homepage beats (phase 10, synthesis §"Homepage
+   fullness"). Only hb-* classes are defined here; everything else is the
+   site's own tokens and primitives (var(--ui/--hairline/--font-display/
+   --font-mono), .shell, .microlabel, [data-reveal]).
+
+   Beats, in order:
+     1 .hb-manifesto  full-viewport statement on open sky
+     2 .hb-recogn     recognition as prose (text receipts, no logo wall)
+     3 .hb-lab        the greenhouse — six live artifacts
+     4 .hb-faq        questions, answered straight (accessible accordion)
+     5 .hb-now        three dated lines
+     6 .hb-colo       colophon card — the site is a prototype too
+   ========================================================================== */
+
+.hb-home {
+  /* each beat clears the fixed chrome and reads against the open sky */
+  position: relative;
+  z-index: 1;
+}
+
+/* ── beat 1 — manifesto interstitial ─────────────────────────────────────
+   No cards, no metrics — one sentence on open sky. The radial scrim is the
+   text-protection recipe from the hero (synthesis P0 1): cream on a daylight
+   sky measures 1.46:1 without it; the depth tracks --daylight so night stays
+   untouched. */
+
+.hb-manifesto {
+  position: relative;
+  min-height: min(88vh, 880px);
+  display: flex;
+  align-items: center;
+  padding-block: clamp(72px, 12vh, 140px);
+}
+
+.hb-manifesto-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    68% 62% at 30% 48%,
+    rgb(10 14 26 / calc(0.3 + var(--daylight, 0) * 0.3)) 0%,
+    rgb(10 14 26 / calc(0.14 + var(--daylight, 0) * 0.22)) 50%,
+    transparent 76%
+  );
+}
+
+.hb-manifesto-inner {
+  position: relative;
+  width: 100%;
+}
+
+.hb-manifesto-line {
+  margin: clamp(28px, 4vh, 44px) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 144;
+  font-weight: 300;
+  font-size: clamp(36px, 5.4vw, 84px);
+  line-height: 1.04;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+  max-width: 17ch;
+  color: var(--ui);
+  text-shadow: 0 2px 44px rgb(6 9 20 / 0.3);
+}
+
+/* ── beat 2 — recognition as prose ─────────────────────────────────────── */
+
+.hb-recogn {
+  padding-block: clamp(56px, 9vh, 104px) clamp(40px, 7vh, 88px);
+}
+
+.hb-recogn-inner {
+  border-top: 1px solid var(--hairline);
+  padding-top: clamp(26px, 4vh, 44px);
+}
+
+.hb-recogn-line {
+  margin: clamp(18px, 3vh, 28px) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 40;
+  font-weight: 320;
+  font-size: clamp(19px, 2vw, 30px);
+  line-height: 1.42;
+  letter-spacing: -0.012em;
+  max-width: 38ch;
+  color: var(--ui);
+  text-wrap: pretty;
+}
+
+.hb-recogn .hb-dim {
+  color: var(--ui-dim);
+}
+
+.hb-recogn .hb-sep {
+  display: inline-block;
+  margin: 0 0.55em;
+  color: var(--ui-faint);
+}
+
+/* ── beat 3 — the greenhouse ───────────────────────────────────────────── */
+
+.hb-lab {
+  padding-block: clamp(48px, 8vh, 88px);
+}
+
+.hb-lab-title {
+  margin: clamp(16px, 2.6vh, 26px) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 96;
+  font-weight: 300;
+  font-size: clamp(28px, 3.4vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -0.026em;
+  color: var(--ui);
+}
+
+.hb-lab-lede {
+  margin: clamp(14px, 2.2vh, 22px) 0 0;
+  max-width: 46ch;
+  font-size: clamp(13px, 1vw, 15px);
+  line-height: 1.66;
+  font-weight: 350;
+  color: color-mix(in oklab, var(--ui) 78%, transparent);
+}
+
+.hb-lab-grid {
+  margin-top: clamp(20px, 3.5vh, 36px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.6vw, 22px);
+}
+
+.hb-lab-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: linear-gradient(170deg, rgb(16 20 35 / 0.6), rgb(10 14 26 / 0.5));
+  backdrop-filter: blur(20px) saturate(1.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 24px 60px -42px rgb(3 6 14 / 0.8);
+  padding: clamp(16px, 1.7vw, 22px);
+  transition: border-color 260ms var(--ease-smooth), transform 260ms var(--ease-smooth);
+}
+
+@media (hover: hover) {
+  .hb-lab-card:hover {
+    border-color: var(--hairline-strong);
+    transform: translateY(-2px);
+  }
+}
+
+.hb-lab-card-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hb-lab-index {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 17px;
+  color: rgb(246 243 234 / 0.34);
+  font-variant-numeric: tabular-nums;
+}
+
+.hb-lab-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 40;
+  font-weight: 320;
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.15;
+  letter-spacing: -0.014em;
+  color: #fbf9f5;
+}
+
+.hb-lab-pitch {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 350;
+  color: color-mix(in oklab, var(--ui) 82%, transparent);
+  flex: 1;
+}
+
+.hb-lab-proof {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+  color: var(--ui-dim);
+}
+
+.hb-lab-proof-mark {
+  color: var(--ui-faint);
+  margin-right: 2px;
+}
+
+/* ── beat 4 — FAQ, answered straight ───────────────────────────────────── */
+
+.hb-faq {
+  padding-block: clamp(40px, 7vh, 80px);
+}
+
+.hb-faq-head {
+  border-top: 1px solid var(--hairline);
+  padding-top: clamp(26px, 4vh, 44px);
+}
+
+.hb-faq-title {
+  margin: clamp(16px, 2.6vh, 26px) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 96;
+  font-weight: 300;
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1.04;
+  letter-spacing: -0.024em;
+  color: var(--ui);
+}
+
+.hb-faq-list {
+  margin-top: clamp(18px, 3vh, 32px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.hb-faq-item {
+  border-top: 1px solid var(--hairline);
+}
+
+.hb-faq-q {
+  margin: 0;
+  font-size: 1em;
+}
+
+.hb-faq-btn {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(14px, 1.8vw, 22px);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: clamp(14px, 2vh, 20px) 2px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.hb-faq-btn:focus-visible {
+  outline: 1px solid var(--hairline-strong);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.hb-faq-index {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ui-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.hb-faq-q-text {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 40;
+  font-weight: 320;
+  font-size: clamp(17px, 1.6vw, 22px);
+  line-height: 1.3;
+  letter-spacing: -0.014em;
+  color: var(--ui);
+}
+
+.hb-faq-chev {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ui-dim);
+  transition: color 240ms var(--ease-smooth);
+}
+
+@media (hover: hover) {
+  .hb-faq-btn:hover .hb-faq-chev { color: var(--ui); }
+  .hb-faq-btn:hover .hb-faq-q-text { color: #fff; }
+}
+
+.hb-faq-a {
+  /* the row stays indented to the question text, not the index */
+  padding: 0 2px clamp(18px, 2.8vh, 26px) calc(10px + clamp(14px, 1.8vw, 22px) + 24px);
+}
+
+.hb-faq-a p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: clamp(13px, 1vw, 15px);
+  line-height: 1.7;
+  font-weight: 350;
+  color: color-mix(in oklab, var(--ui) 80%, transparent);
+  text-wrap: pretty;
+}
+
+/* ── beat 5 — NOW strip ────────────────────────────────────────────────── */
+
+.hb-now {
+  padding-block: clamp(40px, 7vh, 88px);
+}
+
+.hb-now-inner {
+  border-top: 1px solid var(--hairline);
+  padding-top: clamp(26px, 4vh, 44px);
+}
+
+.hb-now-list {
+  list-style: none;
+  margin: clamp(14px, 2.4vh, 24px) 0 0;
+  padding: 0;
+}
+
+.hb-now-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 160px) minmax(0, 1fr);
+  gap: clamp(14px, 2vw, 28px);
+  align-items: baseline;
+  padding: clamp(13px, 1.9vh, 19px) 0;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.hb-now-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.hb-now-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+  white-space: nowrap;
+}
+
+.hb-now-text {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 40;
+  font-weight: 320;
+  font-size: clamp(16px, 1.5vw, 21px);
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+  color: color-mix(in oklab, var(--ui) 92%, transparent);
+  text-wrap: pretty;
+}
+
+/* ── beat 6 — colophon card ────────────────────────────────────────────── */
+
+.hb-colo {
+  padding-block: clamp(24px, 4vh, 56px) clamp(72px, 12vh, 150px);
+}
+
+.hb-colo-card {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 24px;
+  background: linear-gradient(170deg, rgb(14 18 32 / 0.56), rgb(9 12 22 / 0.46));
+  backdrop-filter: blur(26px) saturate(1.15);
+  -webkit-backdrop-filter: blur(26px) saturate(1.15);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 34px 90px -48px rgb(2 4 10 / 0.9);
+  padding: clamp(24px, 3.2vw, 46px);
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(24px, 3.4vw, 56px);
+}
+
+.hb-colo-title {
+  margin: clamp(14px, 2.2vh, 22px) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 96;
+  font-weight: 300;
+  font-size: clamp(24px, 2.6vw, 38px);
+  line-height: 1.06;
+  letter-spacing: -0.022em;
+  color: #fbf9f5;
+  text-wrap: balance;
+}
+
+.hb-colo-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hb-colo-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 120px) minmax(0, 1fr);
+  gap: clamp(12px, 1.6vw, 24px);
+  align-items: baseline;
+  padding: clamp(11px, 1.7vh, 17px) 0;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.hb-colo-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.hb-colo-term {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+  white-space: nowrap;
+}
+
+.hb-colo-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.66;
+  font-weight: 350;
+  color: color-mix(in oklab, var(--ui) 80%, transparent);
+  text-wrap: pretty;
+}
+
+/* ── beat 0 — Craft in Action (#craft) & Week-One Ownership ───────────── */
+
+.hb-craft {
+  padding-block: clamp(32px, 6vh, 64px) clamp(24px, 4vh, 48px);
+}
+
+.hb-craft-card {
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  background: linear-gradient(170deg, rgb(16 20 35 / 0.72), rgb(10 14 26 / 0.64));
+  backdrop-filter: blur(26px) saturate(1.15);
+  -webkit-backdrop-filter: blur(26px) saturate(1.15);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 34px 84px -46px rgb(3 6 14 / 0.85);
+  padding: clamp(24px, 3.2vw, 44px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(26px, 3.6vh, 40px);
+}
+
+.hb-craft-head {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: clamp(22px, 3vw, 44px);
+  align-items: end;
+}
+
+.hb-craft-title {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: clamp(24px, 2.8vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ui);
+  text-wrap: balance;
+}
+
+.hb-craft-lede {
+  margin: 14px 0 0;
+  max-width: 52ch;
+  font-size: clamp(13.5px, 1vw, 15px);
+  line-height: 1.66;
+  color: color-mix(in oklab, var(--ui) 80%, transparent);
+}
+
+.hb-craft-tester {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hb-craft-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ui-dim);
+}
+
+.hb-craft-status strong {
+  color: var(--ui);
+  font-weight: 500;
+}
+
+.hb-craft-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sky-sun-glow);
+  box-shadow: 0 0 10px var(--sky-sun-glow);
+}
+
+.hb-craft-reset {
+  margin-left: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.06);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui);
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-smooth), border-color 200ms var(--ease-smooth), transform 150ms ease-out;
+}
+.hb-craft-reset:active { transform: scale(0.96); }
+@media (hover: hover) {
+  .hb-craft-reset:hover {
+    background: rgb(255 255 255 / 0.14);
+    border-color: var(--hairline-strong);
+  }
+}
+
+.hb-craft-pills {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hb-craft-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--hairline);
+  background: rgb(10 14 26 / 0.36);
+  color: var(--ui-dim);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 220ms var(--ease-smooth), border-color 220ms var(--ease-smooth), color 220ms var(--ease-smooth), transform 150ms ease-out;
+}
+.hb-craft-pill:active { transform: scale(0.96); }
+@media (hover: hover) {
+  .hb-craft-pill:hover {
+    border-color: var(--hairline-strong);
+    color: var(--ui);
+    background: rgb(255 255 255 / 0.08);
+  }
+}
+.hb-craft-pill.is-active {
+  background: var(--ui);
+  border-color: var(--ui);
+  color: rgb(15 23 42);
+}
+
+.hb-craft-pill-name {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.hb-craft-pill-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.78;
+}
+
+.hb-weekone {
+  padding-top: clamp(20px, 3vh, 28px);
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hb-weekone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(16px, 2vw, 28px);
+}
+
+.hb-weekone-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hb-weekone-index {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--sky-sun-glow);
+}
+
+.hb-weekone-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ui);
+}
+
+.hb-weekone-body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: color-mix(in oklab, var(--ui) 78%, transparent);
+}
+
+/* ── responsive ────────────────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .hb-craft-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hb-weekone-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hb-lab-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 719px) {
+  .hb-craft-pills {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hb-manifesto {
+    min-height: min(76vh, 720px);
+  }
+
+  .hb-manifesto-line {
+    max-width: 21ch;
+  }
+
+  .hb-lab-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hb-colo-card {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 20px;
+  }
+
+  .hb-now-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .hb-now-row:first-child {
+    padding-top: clamp(13px, 1.9vh, 19px);
+  }
+
+  .hb-faq-a {
+    padding-left: 2px;
+  }
+}
+
+/* ── reduced motion: the reveal engine covers this file (global.css forces
+   [data-reveal] visible); card hover lift is transform-only and gated by the
+   hover media above, so nothing else needs a gate here. ───────────────── */

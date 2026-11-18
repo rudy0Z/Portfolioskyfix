@@ -1,23 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { NavigationNotch } from "./navigation/NavigationNotch";
 
 export interface HeaderProps {
-  onOpenGarden: () => void;
-  isLoaderDocked?: boolean;
+  /** The sky clock, rendered at the right end of the top row. */
+  clock?: ReactNode;
+  /** Replay the intro bloom — fired by the docked tracking flower. */
+  onReplayBloom?: () => void;
 }
 
 /**
- * Header — Wraps the top-anchored morphing NavigationNotch with TypeGarden botanical logo,
- * cursor-tracking flower, navigation links, and compact audio player.
+ * Header — the persistent top navigation bar.
  */
-export function Header({ onOpenGarden, isLoaderDocked = true }: HeaderProps) {
-  return (
-    <NavigationNotch
-      onOpenGarden={onOpenGarden}
-      isLoaderDocked={isLoaderDocked}
-    />
-  );
+export function Header({ clock, onReplayBloom }: HeaderProps) {
+  return <NavigationNotch clock={clock} onReplayBloom={onReplayBloom} />;
 }
 
 export { NavigationNotch };

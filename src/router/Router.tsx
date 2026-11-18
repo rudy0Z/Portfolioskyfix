@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode, type MouseEvent } from "react";
+import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode, type MouseEvent } from "react";
 
 export type RoutePath =
   | "/"
@@ -6,7 +6,6 @@ export type RoutePath =
   | "/projects"
   | "/journal"
   | "/resume"
-  | "/lab"
   | "/404"
   | "/case/sentinel"
   | "/case/lokai"
@@ -48,10 +47,28 @@ function parseLocation(): { path: RoutePath; params: URLSearchParams } {
   const params = new URLSearchParams(queryStr);
   const clean = ("/" + raw).replace(/\/+$/, "") || "/";
 
-  // Support anchor hashes on the homepage (e.g. #work, #hero)
-  const anchorAliases = ["/work", "/home", "/hero", "/contact"];
+  // Support anchor hashes & legacy secondary page redirects to homepage sections
+  const anchorAliases = ["/work", "/home", "/hero", "/craft", "/contact", "/about", "/projects", "/journal"];
   if (anchorAliases.includes(clean)) {
     return { path: "/", params };
+  }
+
+  // Canonical /projects/:slug and /projects/:slug/e aliases map cleanly to CaseStudyPage
+  const projectCaseAliases: Record<string, { path: RoutePath; proto?: boolean }> = {
+    "/projects/sentinel": { path: "/case/sentinel" },
+    "/projects/lokai": { path: "/case/lokai" },
+    "/projects/feul": { path: "/case/feul" },
+    "/projects/sentinel/e": { path: "/case/sentinel", proto: true },
+    "/projects/lokai/e": { path: "/case/lokai", proto: true },
+    "/projects/feul/e": { path: "/case/feul", proto: true },
+    "/case/sentinel/e": { path: "/case/sentinel", proto: true },
+    "/case/lokai/e": { path: "/case/lokai", proto: true },
+    "/case/feul/e": { path: "/case/feul", proto: true },
+  };
+  const alias = projectCaseAliases[clean];
+  if (alias) {
+    if (alias.proto) params.set("prototype", "1");
+    return { path: alias.path, params };
   }
 
   const validPaths: RoutePath[] = [
@@ -60,7 +77,6 @@ function parseLocation(): { path: RoutePath; params: URLSearchParams } {
     "/projects",
     "/journal",
     "/resume",
-    "/lab",
     "/404",
     "/case/sentinel",
     "/case/lokai",
@@ -96,12 +112,19 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Scroll restoration: Whenever route path changes, instantly restore scroll to top
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [loc.path]);
+
   const navigate = (to: string) => {
     if (typeof window === "undefined") return;
 
-    // Support anchor scrolling on homepage (e.g. #work)
-    if (to.startsWith("#") && !to.startsWith("#/")) {
-      const targetId = to.slice(1);
+    // Support anchor scrolling on homepage (e.g. #work, or the "/#work" form
+    // used by footer links — both must scroll, never hit the router).
+    const anchorTo = to.startsWith("/#") ? to.slice(1) : to;
+    if (anchorTo.startsWith("#") && !anchorTo.startsWith("#/")) {
+      const targetId = anchorTo.slice(1);
       const el = document.getElementById(targetId);
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
@@ -138,6 +161,7 @@ export function Link({
   rel,
   title,
   ariaLabel,
+  style,
 }: {
   href: string;
   children: ReactNode;
@@ -147,6 +171,7 @@ export function Link({
   rel?: string;
   title?: string;
   ariaLabel?: string;
+  style?: CSSProperties;
 }) {
   const { navigate } = useRoute();
 
@@ -173,6 +198,7 @@ export function Link({
       rel={rel}
       title={title}
       aria-label={ariaLabel}
+      style={style}
     >
       {children}
     </a>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Typography Option B: Instrument Serif Display + Manrope UI + DM Mono</title>
+  <link rel="stylesheet" href="../assets/tokens.css" />
+  <style>
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: var(--font-manrope);
+      background:
+        radial-gradient(60% 42% at 68% 48%, rgba(254, 240, 199, 0.55), transparent 70%),
+        linear-gradient(180deg, #5c8cc7 0%, #90b4dc 48%, #dce5d8 58%, #3c6245 59%, #1d3828 100%);
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px 44px 36px;
+    }
+    .hub {
+      align-self: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(252, 250, 246, 0.88);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      backdrop-filter: blur(20px);
+      font-size: 13px;
+    }
+    .hub span.brand {
+      font-family: var(--font-playfair);
+      font-weight: 700;
+      font-size: 16px;
+      padding: 4px 12px;
+    }
+    .hub a {
+      padding: 6px 12px;
+      text-decoration: none;
+      color: #334155;
+      font-weight: 600;
+    }
+    .hero-card {
+      max-width: 560px;
+      margin: auto 0;
+      padding: 34px 38px;
+      border-radius: 28px;
+      background: rgba(252, 250, 246, 0.9);
+      border: 1px solid rgba(15, 23, 42, 0.09);
+      box-shadow: 0 28px 64px -24px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255,255,255,0.92);
+      backdrop-filter: blur(24px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #475569;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #059669; }
+    h1 {
+      margin: 0;
+      font-family: var(--font-instrument);
+      font-size: 56px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 0.98;
+      color: #0f172a;
+    }
+    h1 em {
+      font-style: italic;
+      color: #047857;
+    }
+    p {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.62;
+      color: #334155;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .btn-dark {
+      padding: 11px 22px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #f8fafc;
+      border: none;
+      font-weight: 600;
+      font-size: 13.5px;
+    }
+    .btn-light {
+      padding: 11px 18px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.055);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+    .spec-note {
+      align-self: flex-start;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(11, 18, 30, 0.72);
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header class="hub">
+    <span class="brand">Rudraksh</span>
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#process">Process</a>
+    <a href="#contact">Contact</a>
+    <a href="#resume">Resume ↗</a>
+    <span style="padding:5px 12px;border-radius:999px;background:rgba(15,23,42,0.06);font-family:var(--font-mono);font-size:11.5px;">☀ 10:30</span>
+  </header>
+
+  <section class="hero-card">
+    <div class="meta">
+      <span class="dot"></span>
+      <span>Greater Noida, India · Open to Product Design Roles</span>
+    </div>
+
+    <h1>Designed with clarity. Prototyped <em>in code</em>.</h1>
+
+    <p>
+      I’m Rudraksh Singh — designing decision-critical AI interfaces and building working prototypes in React &amp; TypeScript from first question to shipped screen.
+    </p>
+
+    <div class="actions">
+      <button type="button" class="btn-dark">Explore selected work ↓</button>
+      <button type="button" class="btn-light">Resume PDF ↗</button>
+    </div>
+  </section>
+
+  <div class="spec-note">
+    Option B (Air / Pinkesh Editorial): Instrument Serif Regular/Italic + Manrope UI (matches PinUI dial!) + DM Mono
+  </div>
+</body>
+</html>

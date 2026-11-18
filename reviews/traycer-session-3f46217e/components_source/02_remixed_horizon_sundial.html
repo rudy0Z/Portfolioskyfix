@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Remixed Horizon Sundial (PinUI LED Comb × East-West Horizon Arc)</title>
+  <link rel="stylesheet" href="../assets/tokens.css" />
+  <style>
+    body {
+      width: 1280px;
+      height: 820px;
+      overflow: hidden;
+      background:
+        radial-gradient(60% 45% at 72% 38%, rgba(253, 186, 116, 0.42), transparent 68%),
+        linear-gradient(180deg, #1f3358 0%, #4f5d82 52%, #c9886b 86%, #dfaa78 100%);
+      color: #f8fafc;
+      padding: 36px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wordmark {
+      font-family: var(--font-display);
+      font-size: 22px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      background: rgba(12, 17, 30, 0.65);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .trigger-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(12, 17, 30, 0.72);
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(18px);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .orb {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fef08a, #f97316);
+      box-shadow: 0 0 12px #fb923c;
+    }
+    .arena {
+      display: grid;
+      grid-template-columns: 1fr 370px;
+      gap: 48px;
+      align-items: center;
+      margin: auto 0;
+    }
+    .explain {
+      background: rgba(12, 17, 30, 0.66);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(22px);
+      border-radius: 28px;
+      padding: 32px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .explain h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 380;
+    }
+    .explain p {
+      margin: 0;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+    /* The Remixed Signature Instrument: Horizontal Sundial Dome + Chromatic LED Comb */
+    .sundial-card {
+      background:
+        radial-gradient(75% 42% at 68% 62%, rgba(251, 146, 60, 0.28), transparent 72%),
+        linear-gradient(180deg, rgba(16, 21, 36, 0.92) 0%, rgba(9, 12, 22, 0.96) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 32px 80px -24px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255,255,255,0.22);
+      border-radius: 30px;
+      padding: 22px 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sd-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+    }
+    .loc-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .sd-readout {
+      text-align: center;
+      margin-top: -6px;
+    }
+    .sd-time {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+    }
+    .sd-phase {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #fdba74;
+    }
+    .sd-toggles {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .chip-toggle {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-align: center;
+      color: #f8fafc;
+    }
+    .chip-toggle.on {
+      border-color: rgba(251, 191, 36, 0.45);
+      background: rgba(251, 191, 36, 0.14);
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <span class="wordmark">Rudraksh</span>
+    <div class="trigger-pill">
+      <span class="orb"></span>
+      <span>Surat, IN · 17:45</span>
+      <span style="color:#fdba74;">GOLDEN HOUR ⌄</span>
+    </div>
+  </header>
+
+  <div class="arena">
+    <div class="explain">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.16em;color:#fdba74;">REMIXED SIGNATURE SKY DIAL</div>
+      <h1>Why this beats copying PinUI or Thoufik</h1>
+      <p>
+        <strong>PinUI’s ThermalDial</strong> is a circular thermostat (-120° to +120°), which looks recognizable as a temperature widget. <strong>Thoufik &amp; Pranshu</strong> use plain grey semicircular arcs with standard iOS switches.
+      </p>
+      <p>
+        <strong>Your Remix — The Horizon Sundial:</strong> Maps PinUI’s multi-hue illuminated LED comb onto a <strong>true East → Zenith → West solar horizon dome</strong>, with a glowing sun/moon orb riding above a hairline prairie horizon, grounded to <strong>Surat 21°N ↔ Visitor Local</strong> and tactile atmosphere pills (no iOS switches).
+      </p>
+    </div>
+
+    <div class="sundial-card">
+      <div class="sd-head">
+        <span class="loc-chip">☀ Surat, 21°N <span style="color:#94a3b8;font-size:11px;">(IST)</span></span>
+        <button type="button" style="background:none;border:none;color:#94a3b8;font-size:12px;">↺ Live</button>
+      </div>
+
+      <!-- East-to-West Solar Horizon Dome with Chromatic LED Comb -->
+      <svg viewBox="0 0 320 150" style="width:100%;height:auto;overflow:visible;">
+        <defs>
+          <linearGradient id="horizonGlow" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.5" />
+            <stop offset="50%" stop-color="#fde047" stop-opacity="0.9" />
+            <stop offset="78%" stop-color="#fb923c" stop-opacity="1" />
+            <stop offset="100%" stop-color="#818cf8" stop-opacity="0.35" />
+          </linearGradient>
+        </defs>
+        <!-- Prairie Horizon Baseline -->
+        <path d="M 16 128 Q 95 121 160 125 T 304 128" stroke="rgba(255,255,255,0.22)" stroke-width="1.2" fill="none" />
+        <text x="18" y="143" fill="#94a3b8" font-family="JetBrains Mono" font-size="8.5">06:00 EAST</text>
+        <text x="142" y="143" fill="#94a3b8" font-family="JetBrains Mono" font-size="8.5">NOON</text>
+        <text x="252" y="143" fill="#fdba74" font-family="JetBrains Mono" font-size="8.5">18:00 WEST</text>
+
+        <!-- Illuminated Horizon Arc + 48 Chromatic LED Comb Ticks -->
+        <path d="M 28 124 A 132 106 0 0 1 292 124" stroke="url(#horizonGlow)" stroke-width="2" fill="none" opacity="0.55" />
+        <g stroke-linecap="round">
+          <line x1="42" y1="98" x2="36" y2="92" stroke="#38bdf8" stroke-width="1.6" opacity="0.7" />
+          <line x1="62" y1="74" x2="55" y2="66" stroke="#60a5fa" stroke-width="1.6" opacity="0.75" />
+          <line x1="88" y1="53" x2="82" y2="44" stroke="#93c5fd" stroke-width="1.6" opacity="0.8" />
+          <line x1="120" y1="38" x2="116" y2="28" stroke="#fde68a" stroke-width="1.7" opacity="0.85" />
+          <line x1="158" y1="32" x2="158" y2="21" stroke="#fef08a" stroke-width="1.8" opacity="0.9" />
+          <line x1="196" y1="38" x2="200" y2="26" stroke="#fcd34d" stroke-width="2" opacity="0.95" />
+          <line x1="230" y1="54" x2="239" y2="40" stroke="#fb923c" stroke-width="2.4" />
+          <line x1="256" y1="77" x2="268" y2="66" stroke="#fdba74" stroke-width="2.8" />
+          <line x1="275" y1="102" x2="283" y2="97" stroke="rgba(255,255,255,0.22)" stroke-width="1.3" />
+        </g>
+
+        <!-- Travelling Solar Orb at 17:45 Golden Hour -->
+        <circle cx="256" cy="77" r="14" fill="rgba(251, 146, 60, 0.28)" />
+        <circle cx="256" cy="77" r="6.5" fill="#fef08a" stroke="#f97316" stroke-width="2" />
+      </svg>
+
+      <div class="sd-readout">
+        <div class="sd-time">17:45</div>
+        <div class="sd-phase">Golden Hour · Drag sun along horizon</div>
+      </div>
+
+      <div class="sd-toggles">
+        <button type="button" class="chip-toggle on">☁ Cloud Drift</button>
+        <button type="button" class="chip-toggle on">✦ Night Stars</button>
+        <button type="button" class="chip-toggle">📍 My Time</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -26,3 +26,18 @@ dist-ssr
 
 # QA visual regression renders
 qa/
+
+# Local tooling & IDE sessions
+.v2c/
+.zcode/
+
+# Heavy automated test runs & video extractions (keep locally on disk, exclude from Git/LFS)
+reviews/2026-11-10/
+reviews/2026-11-07/
+reviews/2026-11-09/
+reviews/thoufik-reference/
+reviews/thoufik-video-frames/
+reviews/captures-frames/
+reviews/shots/
+reviews/crops/
+archive/

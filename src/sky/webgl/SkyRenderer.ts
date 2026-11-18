@@ -17,7 +17,8 @@
 
 import type { LightModel } from "@/lib/lighting";
 import { clamp, smoothstep } from "@/lib/color";
-import { CLOUD_FRAG, COMPOSITE_FRAG, NOISE_FRAG, VERT } from "./shaders";
+import { reportSky, state as budgetState } from "@/lib/frameBudget";
+import { CLOUD_FRAG, COMPOSITE_FRAG, NOISE_FRAG, SHAFT_FRAG, VERT } from "./shaders";
 
 type Vec3 = [number, number, number];
 
@@ -27,6 +28,10 @@ const HORIZON_Y = 0.85;
 const PITCH = Math.atan((HORIZON_Y * 2 - 1) * TAN_HALF);
 
 const NOISE_SIZE = 64;
+
+/** Sun-transmittance pass size — fixed, viewport-independent (hero plan §3.1). */
+const SHAFT_W = 160;
+const SHAFT_H = 96;
 
 function srgbToLinear(c: number) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -70,6 +75,11 @@ export interface RenderOptions {
   still?: boolean;
   /** The scene is changing quickly (scrub / scroll): favour the new frame. */
   fast?: boolean;
+  /** Skip the cloud march this frame and re-composite the last cloud state
+   *  (scroll cadence: every other frame once the hero exit is done). */
+  cloudSkip?: boolean;
+  /** `?lite=sky` bisect flag: composite without god rays. */
+  shaftsOff?: boolean;
 }
 
 export interface Quality {
@@ -86,6 +96,9 @@ export class SkyRenderer {
   private canvas: HTMLCanvasElement;
   private cloud!: Program;
   private comp!: Program;
+  private shaft!: Program;
+  private shaftTex!: WebGLTexture;
+  private shaftFbo!: WebGLFramebuffer;
   private noise!: WebGLTexture;
   /** Ping-pong pair: the cloud pass blends each frame into the last. */
   private cloudTex: WebGLTexture[] = [];
@@ -139,7 +152,29 @@ export class SkyRenderer {
     this.vao = gl.createVertexArray()!;
     this.cloud = this.program(CLOUD_FRAG);
     this.comp = this.program(COMPOSITE_FRAG);
+    this.shaft = this.program(SHAFT_FRAG);
     this.noise = this.bakeNoise();
+    this.bakeShaftTarget();
+  }
+
+  /** Fixed-size transmittance target (one texel per sky direction). */
+  private bakeShaftTarget() {
+    const gl = this.gl;
+    const tex = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, SHAFT_W, SHAFT_H);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fbo = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (!ok) throw new Error("shaft target incomplete");
+    this.shaftTex = tex;
+    this.shaftFbo = fbo;
   }
 
   /* ── setup ────────────────────────────────────────────────────────── */
@@ -307,6 +342,7 @@ export class SkyRenderer {
       ambBottom,
       sunVis: L.sun.opacity,
       glowAmt: clamp(smoothstep(-0.28, 0.0, sunAlt) * (0.55 + 0.45 * L.golden + 0.3 * L.twilight)),
+      shaftAmt: clamp(L.shafts ?? 0),
       moonVis: L.moon.opacity,
       moonPhase: L.moonPhase,
       moonIllum: L.moonIllumination,
@@ -338,40 +374,62 @@ export class SkyRenderer {
 
     gl.bindVertexArray(this.vao);
 
-    /* clouds — written into one target while reading the other as history */
+    /* sun transmittance — tiny fixed pass over the coverage map only */
+    const sh = this.shaft;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shaftFbo);
+    gl.viewport(0, 0, SHAFT_W, SHAFT_H);
+    gl.useProgram(sh.prog);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, this.noise);
+    gl.uniform1i(sh.u.uNoise, 0);
+    this.common(sh, SHAFT_W, SHAFT_H, aspect, u);
+    gl.uniform1f(sh.u.uCamY, (opts.lift ?? 0) * 0.55);
+    gl.uniform3fv(sh.u.uWind, wind);
+    gl.uniform3fv(sh.u.uKeyDir, u.keyDir);
+    gl.uniform1f(sh.u.uCoverage, u.coverage);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    /* clouds — written into one target while reading the other as history.
+       Scroll cadence: outside the hero the caller skips this march every
+       other frame; the composite then re-reads the last written state. */
+    const skipCloud = !!opts.cloudSkip && this.historyValid;
     const c = this.cloud;
     const src = this.ping;
     const dst = 1 - this.ping;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.cloudFbo[dst]);
-    gl.viewport(0, 0, this.cloudSize[0], this.cloudSize[1]);
-    gl.useProgram(c.prog);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_3D, this.noise);
-    gl.uniform1i(c.u.uNoise, 0);
-    this.common(c, this.cloudSize[0], this.cloudSize[1], aspect, u);
-    gl.uniform1f(c.u.uCamY, (opts.lift ?? 0) * 0.55);
-    gl.uniform3fv(c.u.uWind, wind);
-    gl.uniform3fv(c.u.uDetailWind, detailWind);
-    gl.uniform1f(c.u.uCoverage, u.coverage);
-    gl.uniform1f(c.u.uDensity, 44);
-    gl.uniform3fv(c.u.uKeyDir, u.keyDir);
-    gl.uniform3fv(c.u.uKeyColor, u.keyColor);
-    gl.uniform3fv(c.u.uAmbTop, u.ambTop);
-    gl.uniform3fv(c.u.uAmbBottom, u.ambBottom);
-    gl.uniform3fv(c.u.uRim, u.rim);
-    gl.uniform1f(c.u.uFogK, u.fogK);
-    gl.uniform1f(c.u.uOutScale, outScale);
-    gl.uniform1i(c.u.uSteps, this.quality.steps);
-    gl.uniform1i(c.u.uLightSteps, this.quality.lightSteps);
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, this.cloudTex[src]);
-    gl.uniform1i(c.u.uHistory, 2);
-    // Light history while things move fast, deeper when the scene is calm.
-    gl.uniform1f(c.u.uBlend, this.historyValid ? (opts.fast ? 0.45 : 0.12) : 1);
-    gl.uniform1f(c.u.uFrame, this.frame++ % 1024);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    this.ping = dst;
-    this.historyValid = true;
+    if (!skipCloud) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.cloudFbo[dst]);
+      gl.viewport(0, 0, this.cloudSize[0], this.cloudSize[1]);
+      gl.useProgram(c.prog);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_3D, this.noise);
+      gl.uniform1i(c.u.uNoise, 0);
+      this.common(c, this.cloudSize[0], this.cloudSize[1], aspect, u);
+      gl.uniform1f(c.u.uCamY, (opts.lift ?? 0) * 0.55);
+      gl.uniform3fv(c.u.uWind, wind);
+      gl.uniform3fv(c.u.uDetailWind, detailWind);
+      gl.uniform1f(c.u.uCoverage, u.coverage);
+      gl.uniform1f(c.u.uDensity, 44);
+      gl.uniform3fv(c.u.uKeyDir, u.keyDir);
+      gl.uniform3fv(c.u.uKeyColor, u.keyColor);
+      gl.uniform3fv(c.u.uAmbTop, u.ambTop);
+      gl.uniform3fv(c.u.uAmbBottom, u.ambBottom);
+      gl.uniform3fv(c.u.uRim, u.rim);
+      gl.uniform1f(c.u.uFogK, u.fogK);
+      gl.uniform1f(c.u.uOutScale, outScale);
+      gl.uniform1i(c.u.uSteps, this.quality.steps);
+      gl.uniform1i(c.u.uLightSteps, this.quality.lightSteps);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.cloudTex[src]);
+      gl.uniform1i(c.u.uHistory, 2);
+      // Light history while things move fast, deeper when the scene is calm.
+      gl.uniform1f(c.u.uBlend, this.historyValid ? (opts.fast ? 0.45 : 0.12) : 1);
+      gl.uniform1f(c.u.uFrame, this.frame++ % 1024);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      this.ping = dst;
+      this.historyValid = true;
+    }
+    // The composite always reads the freshest written cloud state.
+    const readCloud = skipCloud ? this.ping : dst;
 
     /* composite */
     const k = this.comp;
@@ -379,13 +437,21 @@ export class SkyRenderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(k.prog);
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.cloudTex[dst]);
+    gl.bindTexture(gl.TEXTURE_2D, this.cloudTex[readCloud]);
     gl.uniform1i(k.u.uClouds, 1);
     this.common(k, this.canvas.width, this.canvas.height, aspect, u);
     gl.uniform2f(k.u.uCloudRes, this.cloudSize[0], this.cloudSize[1]);
     gl.uniform1f(k.u.uOutScale, outScale);
     gl.uniform1f(k.u.uTime, secs);
     gl.uniform1f(k.u.uDpr, this.dpr);
+    gl.uniform1f(k.u.uCoverage, u.coverage);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this.shaftTex);
+    gl.uniform1i(k.u.uShafts, 3);
+    // `?lite=sky` bisects to 0; the budget tier fades its multiplier out over
+    // ~600 ms (frameBudget cross-fade — beams dissolve, never pop).
+    gl.uniform1f(k.u.uShaftAmt, opts.shaftsOff ? 0 : u.shaftAmt * budgetState().shafts);
+    gl.uniform1f(k.u.uDrift, drift);
     gl.uniform3fv(k.u.uSunCore, u.sunCore);
     gl.uniform3fv(k.u.uMoonDir, u.moonDir);
     gl.uniform1f(k.u.uMoonVis, u.moonVis);
@@ -424,10 +490,18 @@ export class SkyRenderer {
     const sorted = [...this.frameTimes].sort((a, b) => a - b);
     const median = sorted[sorted.length >> 1];
     this.frameTimes.length = 0;
+    // Shared budget (hero plan §5.3): the coordinator sees the same median
+    // this governor adapts to, so both canvases step down together.
+    reportSky(median);
     const q = this.quality;
     const before = q.scale;
     if (median > 21 && q.scale > q.minScale) q.scale = Math.max(q.minScale, q.scale * 0.85);
     else if (median < 17.5 && q.scale < q.maxScale) q.scale = Math.min(q.maxScale, q.scale * 1.05);
+    // Budget tier caps the ceiling; the internal governor keeps its own
+    // smoothing inside the cap. Quantized so the cross-fade walks in small
+    // real steps instead of reallocating the cloud target every frame.
+    const cap = Math.round(budgetState().sky * 50) / 50;
+    if (q.scale > cap) q.scale = cap;
     if (q.scale !== before) this.historyValid = false;
   }
 
@@ -444,6 +518,9 @@ export class SkyRenderer {
     const gl = this.gl;
     gl.deleteProgram(this.cloud.prog);
     gl.deleteProgram(this.comp.prog);
+    gl.deleteProgram(this.shaft.prog);
+    gl.deleteTexture(this.shaftTex);
+    gl.deleteFramebuffer(this.shaftFbo);
     gl.deleteTexture(this.noise);
     this.cloudTex.forEach((t) => gl.deleteTexture(t));
     this.cloudFbo.forEach((f) => gl.deleteFramebuffer(f));

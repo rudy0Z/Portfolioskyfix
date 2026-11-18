@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reference Video Study &amp; Remix Blueprint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+      color: var(--color-text-primary);
+      background: var(--color-background-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    body { padding: 16px; }
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    header.head {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--color-border-primary);
+    }
+    .kicker {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-secondary);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(19px, 2.8vw, 24px);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 650;
+    }
+    p.sub {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--color-text-secondary);
+    }
+    .sec {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-border-primary);
+      border-radius: var(--border-radius-md, 8px);
+      background: var(--color-background-secondary);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--color-border-secondary);
+      vertical-align: top;
+    }
+    th {
+      font-family: var(--font-mono, monospace);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-secondary);
+      background: var(--color-background-tertiary);
+    }
+    tr:last-child td { border-bottom: none; }
+    .tag {
+      display: inline-flex;
+      padding: 2px 7px;
+      border-radius: var(--border-radius-sm, 4px);
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .tag-win {
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+    }
+    .tag-warn {
+      background: var(--color-background-warning);
+      color: var(--color-text-warning);
+    }
+    .tag-info {
+      background: var(--color-background-info);
+      color: var(--color-text-info);
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      padding: 14px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-primary);
+      border-radius: var(--border-radius-md, 8px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 650;
+    }
+    .card p {
+      margin: 0;
+      font-size: 12.5px;
+      color: var(--color-text-secondary);
+    }
+    code {
+      font-family: var(--font-mono, monospace);
+      font-size: 11.5px;
+      background: var(--color-background-tertiary);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <span class="kicker">6-Video Frame-by-Frame Critique &amp; Remix Matrix</span>
+      <h1>How Your References Stack Up — &amp; How to Remix Them Into Your Own Signature</h1>
+      <p class="sub">
+        Analyzed across Thoufik Abdullah (<code>thoufik.space</code>), Air (<code>air.inc</code>), Pranshu Agarwal, Pinkesh Patel, HAOQI©2026, and Sundial (<code>OG3qUKbv1RPdom_w.mp4</code>). Open the companion Canvas tile beside chat to compare the 4 proposed UI boards side-by-side.
+      </p>
+    </header>
+
+    <section class="sec">
+      <h2>1. Case Study Architecture: Thoufik vs. Air vs. Your Hybrid Remix</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Thoufik Abdullah (<code>thoufik.space</code>)</th>
+              <th>Air.inc Subpages (<code>air.inc</code>)</th>
+              <th>Your Remix (Thoufik × Air Hybrid)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Page Surface</strong></td>
+              <td>Calm translucent slate cards floating over the persistent sky from top to bottom.</td>
+              <td>Sky hero banner at top, then full-bleed solid <code>#FFFFFF</code> walls that hide the sky for 80% of the read.</td>
+              <td><span class="tag tag-win">Best of Both</span> Adaptive frosted paper/obsidian chapters over the live 24h sky + solid crisp inner stages for interactive prototypes.</td>
+            </tr>
+            <tr>
+              <td><strong>Navigation</strong></td>
+              <td>Sticky left chapter rail (<code>Overview</code> → <code>Patient context</code> → <code>Safety</code> → <code>Outcomes</code>) + top <code>← Work</code> pill.</td>
+              <td>Global marketing SaaS navbar; no story progress rail.</td>
+              <td><span class="tag tag-win">Adopt &amp; Remix</span> Floating left chapter rail tracking scroll + top-left <code>← Work · Rudraksh</code> return pill.</td>
+            </tr>
+            <tr>
+              <td><strong>Copy &amp; Tone</strong></td>
+              <td>Zero robotic kickers. 5–7 word human sentence headings + 3 tight bullets + expandable <code>Read the decision background ⌄</code>.</td>
+              <td>Punchy 4-word marketing headlines + short benefit paragraphs.</td>
+              <td><span class="tag tag-win">Critical Upgrade</span> Drop all <code>TIER 02 // SYSTEM TENSION</code> nested boxes; use calm declarative headlines + progressive disclosure drawers.</td>
+            </tr>
+            <tr>
+              <td><strong>Visual Proof</strong></td>
+              <td>Static side-by-side light-mode phone PNGs with 3-word captions underneath.</td>
+              <td>Elevated clean UI canvases with generous padding.</td>
+              <td><span class="tag tag-info">Your Edge</span> Live interactive React components inside each chapter stage with scenario tabs (e.g. <code>Hotspot +620°C</code> ↔ <code>Timeout Reverted</code>).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>2. Sky Dialer Showdown: Reference Dialers vs. Our ThermalSkyClock</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dialer</th>
+              <th>What It Does Well</th>
+              <th>Where It Falls Short / Risk for You</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Thoufik</strong><br/>(Top-right weather sheet)</td>
+              <td>Shows real context (<code>☁ San Francisco · 9:45 AM ⌄</code>), city switcher, 180° semicircular tick arc, and weather/motion/sound toggles.</td>
+              <td>Plain monochrome grey ticks and standard blue iOS toggle switches feel like macOS Control Center rather than a bespoke craft object.</td>
+            </tr>
+            <tr>
+              <td><strong>Pranshu</strong><br/>(Bottom-right sun arc)</td>
+              <td>Intuitive physics: a glowing sun/moon orb literally travels along a semicircular horizon curve above a crosshair.</td>
+              <td>Always-expanded square card permanently occupies the bottom-right corner even when not interacting.</td>
+            </tr>
+            <tr>
+              <td><strong>Pinkesh &amp; Air</strong><br/>(Edge 4-icon rail)</td>
+              <td>Zero popover friction — 1 click jumps straight between Dawn, Day, Dusk, and Night.</td>
+              <td>Loses continuous 24-hour scrubbing and the joy of watching colors sweep smoothly across hours.</td>
+            </tr>
+            <tr>
+              <td><strong>Our Current Dial</strong><br/>(<code>ThermalSkyClock</code>)</td>
+              <td>Our 96-tick chromatic OKLCH LED ramp + warm floor glow is visually richer than Thoufik’s or Pranshu’s grey arcs.</td>
+              <td><span class="tag tag-warn">Recognizable DNA</span> The 240° circular thermostat card geometry still reads as a cousin of PinUI’s temperature dial rather than a sky instrument.</td>
+            </tr>
+            <tr>
+              <td><strong>Recommended Remix</strong><br/>(<strong>Horizon Sundial</strong>)</td>
+              <td colspan="2"><span class="tag tag-win">100% Original</span> Reshape PinUI’s multi-hue illuminated LED comb onto an <strong>East → Noon → West Astronomical Horizon Dome</strong> where a glowing solar/lunar orb rides above a hairline prairie ridge, grounded to <code>Surat, 21°N ↔ My Time</code> with tactile pill toggles (<code>Cloud Drift</code>, <code>Night Stars</code>).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>3. What Else to Steal &amp; Remix Across All 6 Videos</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Kill “Nested Box Syndrome” (From Thoufik)</h3>
+          <p>Right now our project cards and case studies have boxes inside boxes with ALL-CAPS monospace badges (<code>CORE SYSTEM TENSION</code>). Stripping inner sub-boxes in favor of clean whitespace, bold lead-ins, and a single <code>Read decision background ⌄</code> drawer immediately elevates perceived seniority.</p>
+        </div>
+        <div class="card">
+          <h3>Tactile Object Cards (Thoufik + Pinkesh)</h3>
+          <p>Thoufik frames work as philatelic stamps &amp; perforated tickets; Pinkesh frames work as a tactile hardware deck. Giving your 3 homepage Flagship Cards live interactive micro-previews (a ticking 90s badge, a 3/3 statutory gate toggle, a live reactive waveform) beats static wireframe SVGs.</p>
+        </div>
+        <div class="card">
+          <h3>Monumental Floral Footer (Air × Pinkesh × TypeGarden)</h3>
+          <p><code>OG3qUKbv1RPdom_w.mp4</code> (Sundial’s dark purple agency grid + giant <em>“Say hello.”</em>) clashes with your meadow world. Opening the bottom back into the sky with a monumental <strong>Rudraksh</strong> tucked into swaying grass &amp; hover-blooming wildflowers closes the loop from your intro loader.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
