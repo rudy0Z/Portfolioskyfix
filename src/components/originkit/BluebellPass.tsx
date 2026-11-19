@@ -5,6 +5,7 @@
 import * as React from "react"
 import { useEffect, useRef } from "react"
 import * as frameBudget from "@/lib/frameBudget"
+import { heroClock } from "@/lib/heroClock"
 
 const MOVED_CONTROLS: { into: Record<string, string>; out: Record<string, string> } = {"into":{},"out":{"hover":"advanced"}}
 const GROUP_FALLBACKS: Record<string, any> = {  }
@@ -528,10 +529,10 @@ interface Pose {
  * whole atlas re-lights together with the 24-hour solar model.
  */
 const SPECIES = [
-    { petals: 6, width: 0.25, curl: -0.18, open: 0.82 }, // starflower / bluebell — sharp star-cup
-    { petals: 5, width: 0.44, curl: -0.08, open: 1.15 }, // buttercup / wild poppy — broad golden bowl
-    { petals: 13, width: 0.16, curl: 0.02, open: 1.42 }, // meadow daisy / aster — slender ray disc
-    { petals: 8, width: 0.32, curl: -0.12, open: 0.95 }, // wild anemone / prairie bell — scalloped cup
+    { petals: 7, width: 0.28, curl: -0.16, open: 0.92 }, // 0: violet lupine / lavender (nocturnal bluebell)
+    { petals: 8, width: 0.30, curl: 0.01, open: 1.38 },  // 1: pink cosmos — 8-petal notched ray flower
+    { petals: 5, width: 0.48, curl: -0.12, open: 1.08 }, // 2: golden-orange California poppy — satin cup
+    { petals: 13, width: 0.16, curl: 0.02, open: 1.44 }, // 3: crisp white meadow daisy — radiating rays
 ]
 const POSES_PER_SPECIES = 3
 interface Palette {
@@ -588,7 +589,71 @@ function makePose(R: () => number, pitch: number, open: number, sp = 0): Pose {
     }
 }
 
+function paintLupine(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
+    // Conical tiered violet lupine / lavender raceme spire (bottom-to-top florets)
+    const tiers = 7
+    const spireH = R * 1.36
+    const baseY = R * 0.44
+    // Subtle central stalk
+    g.strokeStyle = "rgba(46, 92, 62, 0.85)"
+    g.lineWidth = Math.max(1.2, R * 0.065)
+    g.lineCap = "round"
+    g.beginPath()
+    g.moveTo(0, baseY + R * 0.12)
+    g.lineTo(0, baseY - spireH * 0.92)
+    g.stroke()
+
+    for (let t = 0; t < tiers; t++) {
+        const u = t / (tiers - 1) // 0 = base, 1 = conical tip
+        const y = baseY - u * spireH
+        const spread = R * (0.42 * (1 - u * 0.72) + 0.06)
+        const count = u > 0.75 ? 2 : u > 0.42 ? 3 : 4
+        for (let j = 0; j < count; j++) {
+            const frac = (j / (count - 1)) * 2 - 1
+            const jit = p.jit[(t * 3 + j) % 24]
+            const fx = frac * spread + jit * R * 0.05
+            const fy = y + Math.abs(frac) * R * 0.08 + jit * R * 0.03
+            const rx = R * (0.19 - u * 0.075)
+            const ry = R * (0.14 - u * 0.045)
+            const rot = frac * 0.48 + jit * 0.15
+
+            const gr = g.createRadialGradient(fx - rx * 0.25, fy - ry * 0.35, 0, fx, fy, rx * 1.4)
+            gr.addColorStop(0, u > 0.65 ? pal.base : pal.mid)
+            gr.addColorStop(0.55, pal.tip)
+            gr.addColorStop(1, pal.deep)
+
+            g.save()
+            g.translate(fx, fy)
+            g.rotate(rot)
+            g.fillStyle = gr
+            g.beginPath()
+            g.ellipse(0, 0, rx, ry, 0, 0, TAU)
+            g.fill()
+            g.strokeStyle = pal.edge
+            g.lineWidth = Math.max(0.6, R * 0.018)
+            g.stroke()
+            // Tiny sunlit highlight on upper floret lip
+            g.fillStyle = "rgba(255, 255, 255, 0.26)"
+            g.beginPath()
+            g.ellipse(-rx * 0.2, -ry * 0.25, rx * 0.38, ry * 0.26, -0.2, 0, TAU)
+            g.fill()
+            g.restore()
+        }
+    }
+    // Conical tip bud
+    g.fillStyle = pal.base
+    g.beginPath()
+    g.ellipse(0, baseY - spireH - R * 0.05, R * 0.09, R * 0.13, 0, 0, TAU)
+    g.fill()
+}
+
 function paintFlower(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
+    const S0 = p.sp & 3
+    // Species 0: Conical tiered Violet Lupines (unless rendered as flat canopy fan)
+    if (S0 === 0 && p.fan === 0) {
+        paintLupine(g, R, p, pal)
+        return
+    }
     const cb = Math.cos(p.pitch),
         sb = Math.sin(p.pitch)
     const n = p.petals
@@ -749,68 +814,78 @@ function paintFlower(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palet
  */
 function paintCoreBack(g: CanvasRenderingContext2D, R: number, p: Pose, S: number) {
     const k = p.core
-    if (S === 0) lightCore(g, R, k)
-    else if (S === 1) lightCore(g, R, k, [255, 205, 92, 1])
-    else if (S === 2) lightCore(g, R, k * 0.9, [255, 208, 120, 1])
-    else lightCore(g, R, k, [196, 170, 246, 1])
+    if (S === 0) lightCore(g, R, k, [167, 139, 250, 1])
+    else if (S === 1) lightCore(g, R, k * 0.9, [251, 191, 36, 1])
+    else if (S === 2) lightCore(g, R, k, [253, 224, 71, 1])
+    else lightCore(g, R, k * 0.9, [245, 158, 11, 1])
 }
 
 function paintCoreFront(g: CanvasRenderingContext2D, R: number, p: Pose, S: number) {
     const k = p.core
-    lightCore(g, R, 0.45 * k, S === 0 ? undefined : [255, 214, 130, 1])
+    lightCore(g, R, 0.42 * k, S === 0 ? [196, 181, 253, 1] : [255, 220, 132, 1])
 
+    // Species 1: Pink Cosmos — bright yellow disc center with warm pollen stipple
     if (S === 1) {
-        g.fillStyle = "rgba(255,224,130,0.95)"
-        for (let i = 0; i < 8; i++) {
-            const a = (i * TAU) / 8 + p.jit[i] * 0.2
+        const disc = g.createRadialGradient(-R * 0.04, -R * 0.05, 0, 0, 0, R * 0.24)
+        disc.addColorStop(0, "rgba(254, 240, 138, 1)")
+        disc.addColorStop(0.55, "rgba(251, 191, 36, 1)")
+        disc.addColorStop(1, "rgba(217, 119, 6, 0.95)")
+        g.fillStyle = disc
+        g.beginPath()
+        g.ellipse(0, 0, R * 0.23, R * 0.2, 0, 0, TAU)
+        g.fill()
+        g.fillStyle = "rgba(180, 83, 9, 0.52)"
+        for (let i = 0; i < 12; i++) {
+            const a = (i * TAU) / 12 + p.jit[i] * 0.25
+            const dd = (0.08 + Math.abs(p.jit[(i + 3) % 12]) * 0.1) * R
             g.beginPath()
-            g.arc(Math.cos(a) * R * 0.17, Math.sin(a) * R * 0.15, R * 0.045, 0, TAU)
+            g.arc(Math.cos(a) * dd, Math.sin(a) * dd * 0.85, R * 0.02, 0, TAU)
             g.fill()
         }
-        g.fillStyle = "rgba(36,52,26,0.95)"
+        return
+    }
+    // Species 2: California Poppy — golden pollen ring over warm dark stamen crown
+    if (S === 2) {
+        g.fillStyle = "rgba(254, 243, 199, 0.95)"
+        for (let i = 0; i < 10; i++) {
+            const a = (i * TAU) / 10 + p.jit[i] * 0.2
+            g.beginPath()
+            g.arc(Math.cos(a) * R * 0.17, Math.sin(a) * R * 0.14, R * 0.042, 0, TAU)
+            g.fill()
+        }
+        g.fillStyle = "rgba(124, 45, 18, 0.92)"
         g.beginPath()
         g.arc(0, 0, R * 0.1, 0, TAU)
         g.fill()
         return
     }
-    if (S === 2) {
+    // Species 3: Crisp White Meadow Daisy — raised amber stippled dome disc
+    if (S === 3) {
         const dome = g.createRadialGradient(-R * 0.05, -R * 0.07, 0, 0, 0, R * 0.3)
-        dome.addColorStop(0, "rgba(255,236,170,1)")
-        dome.addColorStop(0.4, "rgba(240,178,64,1)")
-        dome.addColorStop(0.8, "rgba(196,116,26,1)")
-        dome.addColorStop(1, "rgba(148,82,16,0.9)")
+        dome.addColorStop(0, "rgba(254, 240, 138, 1)")
+        dome.addColorStop(0.45, "rgba(245, 158, 11, 1)")
+        dome.addColorStop(0.82, "rgba(217, 119, 6, 1)")
+        dome.addColorStop(1, "rgba(146, 64, 14, 0.92)")
         g.fillStyle = dome
         g.beginPath()
-        g.ellipse(0, 0, R * 0.3, R * 0.26, 0, 0, TAU)
+        g.ellipse(0, 0, R * 0.29, R * 0.25, 0, 0, TAU)
         g.fill()
-        g.fillStyle = "rgba(150,88,20,0.55)"
-        for (let i = 0; i < 16; i++) {
+        g.fillStyle = "rgba(146, 64, 14, 0.58)"
+        for (let i = 0; i < 18; i++) {
             const a = p.jit[i] * TAU
-            const dd = Math.sqrt(Math.abs(p.jit[(i + 4) % 12])) * R * 0.22
+            const dd = Math.sqrt(Math.abs(p.jit[(i + 4) % 12])) * R * 0.21
             g.beginPath()
-            g.arc(Math.cos(a) * dd, Math.sin(a) * dd * 0.85, R * 0.016, 0, TAU)
+            g.arc(Math.cos(a) * dd, Math.sin(a) * dd * 0.85, R * 0.017, 0, TAU)
             g.fill()
         }
         return
     }
-    if (S === 3) {
-        g.strokeStyle = "rgba(74,46,158,0.9)"
-        g.lineWidth = R * 0.035
-        g.beginPath()
-        g.arc(0, 0, R * 0.17, 0, TAU)
-        g.stroke()
-        g.fillStyle = "rgba(44,30,108,0.92)"
-        g.beginPath()
-        g.arc(0, 0, R * 0.11, 0, TAU)
-        g.fill()
-    }
-    const stamens = S === 3 ? 8 : 5
+    const stamens = 5
     g.strokeStyle = `rgba(240,252,255,${0.85 * k})`
     g.lineWidth = R * 0.028
     g.lineCap = "round"
     for (let i = 0; i < stamens; i++) {
-        const a =
-            -Math.PI / 2 + (i - (stamens - 1) / 2) * (S === 3 ? 0.26 : 0.32) + p.jit[i] * 0.1
+        const a = -Math.PI / 2 + (i - (stamens - 1) / 2) * 0.32 + p.jit[i] * 0.1
         const l = R * (0.2 + 0.08 * p.jit[i + 5])
         g.beginPath()
         g.moveTo(0, 0)
@@ -820,7 +895,7 @@ function paintCoreFront(g: CanvasRenderingContext2D, R: number, p: Pose, S: numb
     const hot = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.13)
     hot.addColorStop(0, `rgba(255,255,255,${k})`)
     hot.addColorStop(0.45, `rgba(235,252,255,${0.75 * k})`)
-    hot.addColorStop(1, S === 3 ? "rgba(190,170,255,0)" : "rgba(220,248,255,0)")
+    hot.addColorStop(1, "rgba(220,248,255,0)")
     g.fillStyle = hot
     g.beginPath()
     g.arc(0, 0, R * 0.13, 0, TAU)
@@ -916,49 +991,41 @@ function lightCore(g: CanvasRenderingContext2D, R: number, k: number, col: RGBA 
     g.globalCompositeOperation = "source-over"
 }
 
-function makePalette(fl: RGBA): Palette {
-    return {
-        base: rgba(mix(fl, [175, 246, 255, 1], 0.8)),
-        mid: rgba(mix(fl, [60, 200, 255, 1], 0.4)),
-        tip: rgba(fl),
-        deep: rgba(mix(fl, [5, 30, 120, 1], 0.45)),
-        edge: rgba(mix(fl, [0, 14, 80, 1], 0.6), 0.5),
-    }
-}
-
-/* Colour identity per species: pale → mid → tip → deep → edge targets that the
- * relight flower colour is folded into, so every species drifts with the sun. */
-const SPECIES_PAL: readonly { pale: RGBA; mid: RGBA; deep: RGBA; edge: RGBA }[] = [
-    { pale: [175, 246, 255, 1], mid: [60, 200, 255, 1], deep: [5, 30, 120, 1], edge: [0, 14, 80, 1] }, // starflower
-    { pale: [255, 244, 200, 1], mid: [255, 200, 84, 1], deep: [122, 58, 10, 1], edge: [96, 44, 8, 1] }, // buttercup
-    { pale: [252, 250, 255, 1], mid: [224, 218, 246, 1], deep: [150, 140, 190, 1], edge: [96, 92, 140, 1] }, // daisy
-    { pale: [232, 224, 252, 1], mid: [186, 158, 240, 1], deep: [58, 34, 132, 1], edge: [34, 20, 92, 1] }, // anemone
+/* Four unmistakable daytime botanical species palettes that shift gently
+ * toward nocturnal bioluminescent bluebell as `nightK` rises after dusk. */
+const SPECIES_PAL: readonly { pale: RGBA; mid: RGBA; tip: RGBA; deep: RGBA; edge: RGBA }[] = [
+    // 0: Violet Lupines / Lavender (#8b5cf6, #a78bfa, #c4b5fd)
+    { pale: [212, 198, 254, 1], mid: [167, 139, 250, 1], tip: [139, 92, 246, 1], deep: [91, 33, 182, 1], edge: [68, 24, 146, 1] },
+    // 1: Pink Cosmos (#f472b6, #ec4899)
+    { pale: [252, 212, 234, 1], mid: [244, 114, 182, 1], tip: [236, 72, 153, 1], deep: [190, 24, 93, 1], edge: [157, 23, 77, 1] },
+    // 2: Golden-Orange California Poppies (#f59e0b, #ea580c)
+    { pale: [254, 240, 178, 1], mid: [245, 158, 11, 1], tip: [234, 88, 12, 1], deep: [180, 56, 8, 1], edge: [138, 42, 10, 1] },
+    // 3: Crisp White Meadow Daisies (#ffffff)
+    { pale: [255, 255, 255, 1], mid: [252, 253, 255, 1], tip: [244, 247, 252, 1], deep: [204, 212, 226, 1], edge: [148, 163, 184, 1] },
 ]
 
-function speciesPalette(sp: number, fl: RGBA, vi = 0): Palette {
+function speciesPalette(sp: number, fl: RGBA, vi = 0, nightK = 0): Palette {
     const P = SPECIES_PAL[sp % SPECIES_PAL.length]
-    if (sp === 0 && vi === 0) return makePalette(fl)
-    // The relight colour keeps a voice in every species tint family.
-    let f = mix(fl, P.mid, 0.72)
-    // Per-variant identity: each pose bakes slightly warmer / cooler blood so
-    // a drift reads as a population, not a stamp.
-    if (vi === 1) f = mix(f, [255, 232, 168, 1], 0.2)
-    else if (vi === 2) f = mix(f, [176, 192, 255, 1], 0.2)
-    if (sp === 0) {
-        return {
-            base: rgba(mix(f, [255, 246, 214, 1], 0.72)),
-            mid: rgba(mix(f, [130, 205, 255, 1], 0.4)),
-            tip: rgba(f),
-            deep: rgba(mix(f, [8, 34, 128, 1], 0.45)),
-            edge: rgba(mix(f, [0, 14, 80, 1], 0.6), 0.5),
-        }
+    // Preserve full botanical hue identity during daylight; gently fold into
+    // nocturnal bluebell glow only after twilight.
+    const nightBlend = clamp(nightK * 0.56, 0, 0.56)
+    let tipC = mix(P.tip, fl, nightBlend)
+    let midC = mix(P.mid, fl, nightBlend * 0.72)
+    let paleC = mix(P.pale, [175, 240, 255, 1], nightBlend * 0.55)
+    let deepC = mix(P.deep, [12, 34, 112, 1], nightBlend * 0.65)
+    // Subtle per-variant natural variation so blooms read as a living meadow
+    if (vi === 1) {
+        tipC = mix(tipC, [255, 238, 196, 1], 0.12)
+        midC = mix(midC, [255, 244, 214, 1], 0.1)
+    } else if (vi === 2) {
+        tipC = mix(tipC, P.deep, 0.14)
     }
     return {
-        base: rgba(mix(f, P.pale, 0.8)),
-        mid: rgba(mix(f, P.mid, 0.4)),
-        tip: rgba(f),
-        deep: rgba(mix(f, P.deep, 0.45)),
-        edge: rgba(mix(f, P.edge, 0.6), 0.5),
+        base: rgba(paleC),
+        mid: rgba(midC),
+        tip: rgba(tipC),
+        deep: rgba(deepC),
+        edge: rgba(mix(P.edge, [8, 22, 76, 1], nightBlend * 0.6), 0.45),
     }
 }
 
@@ -1014,6 +1081,18 @@ const FILTER_OK = (() => {
     }
 })()
 
+function blurFromSprite(src: Sprite, blur: number): Sprite {
+    const pad = Math.ceil(blur * 2.5 + 2)
+    const w = src.sw + pad * 2
+    const h = src.sh + pad * 2
+    const c = makeCanvas(w, h)
+    const g = ctx2d(c)
+    if (blur > 0.3 && FILTER_OK) g.filter = `blur(${blur.toFixed(2)}px)`
+    g.drawImage(src.c, src.sx, src.sy, src.sw, src.sh, pad, pad, src.sw, src.sh)
+    g.filter = "none"
+    return { c, sx: 0, sy: 0, sw: w, sh: h, r: src.r, ox: src.ox + pad, oy: src.oy + pad }
+}
+
 function flowerSprite(r: number, pose: Pose, pal: Palette, blur: number, halo?: { col: RGBA; a: number; size: number }): Sprite {
     const pad = Math.ceil(blur * 2.5 + 2)
     const hr = halo ? r * 1.1 * halo.size : 0
@@ -1023,10 +1102,9 @@ function flowerSprite(r: number, pose: Pose, pal: Palette, blur: number, halo?: 
     const g = ctx2d(c)
     const ox = w / 2,
         oy = pad + Math.max(r * 1.1, hr * 0.8 + r * 0.1)
-    g.translate(ox, oy)
     if (halo && halo.a > 0) {
         g.save()
-        g.translate(0, -r * 0.1)
+        g.translate(ox, oy - r * 0.1)
         g.scale(1, 0.8)
         const gr = g.createRadialGradient(0, 0, 0, 0, 0, hr)
         gr.addColorStop(0, rgba(halo.col, 0.75 * halo.a))
@@ -1039,8 +1117,20 @@ function flowerSprite(r: number, pose: Pose, pal: Palette, blur: number, halo?: 
         g.fill()
         g.restore()
     }
-    if (blur > 0.3 && FILTER_OK) g.filter = `blur(${blur.toFixed(2)}px)`
-    paintFlower(g, r, pose, pal)
+    if (blur > 0.3 && FILTER_OK) {
+        // Paint the multi-petal flower sharp onto a scratch canvas once, then apply
+        // a single Gaussian blur blit instead of blurring every petal stroke/fill.
+        const sharp = makeCanvas(w, h)
+        const sg = ctx2d(sharp)
+        sg.translate(ox, oy)
+        paintFlower(sg, r, pose, pal)
+        g.filter = `blur(${blur.toFixed(2)}px)`
+        g.drawImage(sharp, 0, 0)
+        g.filter = "none"
+    } else {
+        g.translate(ox, oy)
+        paintFlower(g, r, pose, pal)
+    }
     return { c, sx: 0, sy: 0, sw: w, sh: h, r, ox, oy }
 }
 function radialSprite(col: RGBA, stops: readonly (readonly [number, number])[]) {
@@ -1104,17 +1194,17 @@ function gustField(t: number, loop: number, u: number, depth: number) {
 }
 
 /*
- * Species mixing: soft fbm leans rather than hard drifts — every patch of the
- * meadow stays a blend of all four species, with just a whisper of regional
- * character so it reads wild, never planted in blocks.
+ * Species mixing: cohesive ecological drifts — broad fbm bands let lupines,
+ * pink cosmos, golden poppies, and white daisies cluster naturally in flowing
+ * sweeps rather than uniform confetti noise.
  */
 function clusterSpecies(u: number, z: number, seed: number) {
-    const n1 = pfbm(u * 1.6 + 11.7, z * 5 + 4.3, seed + 91, 2, 1024)
-    const n2 = pfbm(u * 3.1 + 5.2, z * 9.1 + 8.8, seed + 37, 2, 1024)
-    const pick = n1 * 0.5 + n2 * 0.5
-    if (pick > 0.585) return 1
-    if (pick < 0.415) return 2
-    if (n2 > 0.615) return 3
+    const n1 = pfbm(u * 1.15 + 11.7, z * 3.4 + 4.3, seed + 91, 2, 1024)
+    const n2 = pfbm(u * 2.1 + 5.2, z * 6.2 + 8.8, seed + 37, 2, 1024)
+    const pick = n1 * 0.65 + n2 * 0.35
+    if (pick > 0.59) return 1
+    if (pick < 0.41) return 2
+    if (n2 > 0.62) return 3
     return 0
 }
 
@@ -1160,10 +1250,10 @@ function sowFlowers(
                 const cover = Math.min(0.93, open ? openCover(u, bv - stem - dy) : fieldCover(u, bv - stem - dy))
                 const full = n0 * HEAD_AREA * Rw * Rw * Math.pow(z, -SOW_P)
                 if (R() * full > -Math.log(1 - cover)) continue
-                // A fifth of the bloom mix breaks species outright — real
-                // drifts are full of strays.
+                // Subtle organic strays (~7%) keep cohesive drifts feeling wild
+                // without dissolving into noisy speckling.
                 let sp = clusterSpecies(u, z, adv.seed | 0)
-                if (r6 > 0.82) sp = (r6 * 7.3) % 4 | 0
+                if (r6 > 0.93) sp = (r6 * 7.3) % 4 | 0
                 // Life stages: ~14% closed buds, ~7% gone-to-seed heads.
                 const kind = r5 > 0.93 ? 2 : r5 > 0.79 ? 1 : 0
                 const b: Bloom = {
@@ -1957,11 +2047,12 @@ function buildGround(
             const v = edge(u) + dy - 0.003
             i ? g.lineTo(u, v) : g.moveTo(u, v)
         }
-        g.strokeStyle = rgba(haze, 0.07 * ho)
-        g.lineWidth = 0.006
-        g.shadowColor = rgba(haze, 0.12 * ho)
-        g.shadowBlur = 0.012 * r
         g.lineJoin = "round"
+        g.strokeStyle = rgba(haze, 0.045 * ho)
+        g.lineWidth = 0.022
+        g.stroke()
+        g.strokeStyle = rgba(haze, 0.08 * ho)
+        g.lineWidth = 0.007
         g.stroke()
         g.restore()
     }
@@ -1998,10 +2089,11 @@ function buildGround(
         g.fillRect(uA, gBox.v0 - 0.02, uB - uA, gBox.v1 + 0.12 - gBox.v0)
         // noise-streaked vertical dabs: coherent tone clumps (two interfering
         // waves ≈ the noise field), short streaks that vary with depth
-        const stepU = Math.max(px * 2.2, 0.006)
+        const stepU = Math.max(px * 5.5, 0.016)
         for (let u = uA; u < uB; u += stepU) {
             const vTop = edge(u + stepU / 2) + dy - 0.004
-            for (let v = vTop; v < gBox.v1 + 0.05; v += stepU * (1.1 + ((u * 911) % 7) / 9)) {
+            const vStep = stepU * (1.05 + (Math.abs(u * 911) % 7) / 9)
+            for (let v = vTop; v < gBox.v1 + 0.05; v += vStep) {
                 const nz =
                     Math.sin(u * 260 + Math.sin(v * 120) * 2.1) * 0.5 +
                     Math.sin(u * 63 - v * 47) * 0.5
@@ -2209,9 +2301,14 @@ function buildGround(
         return k
     })
 
-    const pale = mix(fl, [170, 240, 255, 1], 0.85),
-        mid = mix(fl, [20, 110, 160, 1], 0.6)
-    const perU = (adv.carpetCount / 1.5) * 3.5
+    const nightC = clamp(adv.night / 100, 0, 1)
+    const carpetSpecies: RGBA[] = [
+        mix([167, 139, 250, 1], fl, nightC * 0.65), // violet lupine
+        mix([244, 114, 182, 1], fl, nightC * 0.65), // pink cosmos
+        mix([245, 158, 11, 1], fl, nightC * 0.65),  // golden-orange poppy
+        mix([252, 253, 255, 1], [175, 235, 255, 1], nightC * 0.55), // white daisy
+    ]
+    const perU = (adv.carpetCount / 1.5) * 1.65
     for (let ti = Math.floor(cBox.u0 / TILE); ti * TILE < cBox.u1; ti++) {
         const Rc = rng(Math.imul(ti + 101, 7333) ^ Math.imul(adv.seed | 0, 31337))
         const want = perU * TILE
@@ -2222,8 +2319,10 @@ function buildGround(
             const v = terr ? terraceAt(u) + dy + Rc() * 0.012 : edge(u) + dy + z
             const rr = Math.max(px * 0.8, SIZE_PER_DEPTH * Math.max(z, 0.004) * 0.85 * fs) * (0.6 + 0.8 * Rc())
             const airC = terr ? 0 : airAtZ(z)
-            const col = airC > 0.02 ? mix(mix(pale, mid, Rc()), haze, airC) : mix(pale, mid, Rc())
-            const a = 0.55 + 0.45 * Rc()
+            const spC = carpetSpecies[(Rc() * 4) | 0]
+            const baseDot = mix(spC, WHITE, Rc() * 0.28)
+            const col = airC > 0.02 ? mix(baseDot, haze, airC) : baseDot
+            const a = 0.62 + 0.36 * Rc()
             const k = cx[(Rc() * 3) | 0]
             if (!open && inPath(u, v, dy, 0.001)) continue
             k.fillStyle = rgba(col, a)
@@ -2532,6 +2631,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         }
         const onScroll = () => {
             rectDirty = true
+            if (onScreen && (!heroClock.active || heroClock.p < 0.985)) wake()
         }
         root.addEventListener("pointermove", onMove)
         root.addEventListener("pointerenter", onMove)
@@ -2568,36 +2668,45 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         const ensureSceneInner = (v: Vals, adv: Adv, S: number, box: Box) => {
             const fl = parseColor(v.flowerColor, [4, 104, 251, 1])
             const fs = v.scale / 100
-            const sk = [v.flowerColor, adv.squash, adv.defocus, v.glow, adv.glowSize].join("|")
+            const nightStep = Math.round(clamp(adv.night / 100, 0, 1) * 5) / 5
+            const sk = [v.flowerColor, adv.squash, adv.defocus, v.glow, adv.glowSize, nightStep].join("|")
             if (sk !== spriteKey) {
-                palette = speciesPalette(0, fl)
+                palette = speciesPalette(0, fl, 0, nightStep)
 
                 const sq = clamp(adv.squash / 100, 0.15, 0.97)
                 const R = rng(adv.seed * 41 + 3)
                 const blurK = adv.defocus / 7
                 variants = []
-                // Two pose variants per species: pose index = species * 2 + variant.
                 for (let sp = 0; sp < SPECIES.length; sp++) {
                     for (let vi = 0; vi < POSES_PER_SPECIES; vi++) {
-                        const palS = speciesPalette(sp, fl, vi)
-                        const palFarS = speciesPalette(sp, mix(fl, [40, 135, 200, 1], 0.5), vi)
+                        const palS = speciesPalette(sp, fl, vi, nightStep)
+                        const palFarS = speciesPalette(sp, mix(fl, [40, 135, 200, 1], 0.35), vi, nightStep)
                         const pose = makePose(
                             R,
                             Math.asin(clamp(sq * (0.8 + 0.4 * R()), 0.15, 0.97)),
                             (74 + 10 * R()) * DEG,
                             sp
                         )
+                        const sharp100 = flowerSprite(100, pose, palS, 0)
                         variants.push([
                             flowerSprite(28, { ...pose, core: 0.65 }, palFarS, 0),
                             flowerSprite(56, pose, palS, 0),
-                            flowerSprite(100, pose, palS, 0),
-                            flowerSprite(100, pose, palS, 3.5 * blurK),
-                            flowerSprite(100, pose, palS, 7.5 * blurK),
-                            flowerSprite(16, { ...pose, core: 0.55 }, palFarS, 0, {
-                                col: mix(fl, [70, 200, 255, 1], 0.3),
-                                a: Math.min(1, 0.2 * (v.glow / 60)),
-                                size: adv.glowSize / 100,
-                            }),
+                            sharp100,
+                            blurFromSprite(sharp100, 3.5 * blurK),
+                            blurFromSprite(sharp100, 7.5 * blurK),
+                            flowerSprite(
+                                16,
+                                { ...pose, core: 0.55 },
+                                palFarS,
+                                0,
+                                v.glow > 0
+                                    ? {
+                                          col: mix(fl, [70, 200, 255, 1], 0.3),
+                                          a: Math.min(1, 0.18 * (v.glow / 60)),
+                                          size: adv.glowSize / 100,
+                                      }
+                                    : undefined
+                            ),
                         ])
                     }
                 }
@@ -2836,8 +2945,9 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         }
 
         let animating = false
+        const isHeroOccluded = () => heroClock.active && heroClock.p >= 0.985
         const wake = () => {
-            if (!raf && onScreen && !document.hidden) raf = requestAnimationFrame(frame)
+            if (!raf && onScreen && !document.hidden && !isHeroOccluded()) raf = requestAnimationFrame(frame)
         }
         wakeRef.current = () => {
             dirtyRef.current = true
@@ -2848,7 +2958,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
 
             if (lastTick >= 0) cadence = Math.min(Math.min(100, now - lastTick), cadence + 0.2)
             lastTick = now
-            if (!onScreen || document.hidden || !W || !H) {
+            if (!onScreen || document.hidden || !W || !H || isHeroOccluded()) {
                 lastNow = -1
                 return
             }
@@ -2870,16 +2980,24 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 lastDraw = -1
                 gapEma = Math.max(1000 / Math.max(fps, 30), cadence)
             }
-            raf = requestAnimationFrame(frame)
-            if (!dirty && now < due - 3) return
-            due = now - due > 250 ? now + 1000 / Math.max(fps, 30) : due + 1000 / Math.max(fps, 30)
+            if (!dirty && now < due - 3) {
+                raf = requestAnimationFrame(frame)
+                return
+            }
             const dt = lastNow < 0 ? 0 : Math.min(0.05, (now - lastNow) / 1000)
             lastNow = now
             const c0 = performance.now()
             draw(dt)
-            const cost = performance.now() - c0
+            const c1 = performance.now()
+            const cost = c1 - c0
+            const baseInterval = 1000 / Math.max(fps, 30)
+            // Adaptive pacing: on fast machines (cost < 12ms) runs at full 30/60fps;
+            // on slow/software CPUs leaves breathing room for compositor & input.
+            const nextGap = cost > baseInterval * 0.7 ? Math.min(400, cost * 1.65) : baseInterval
+            due = c1 + nextGap
             if (lastDraw >= 0) gapEma += (Math.min(200, now - lastDraw) - gapEma) * 0.1
             lastDraw = now
+            raf = requestAnimationFrame(frame)
 
             const want = Math.max(1, Math.ceil(1000 / Math.max(fps, 30) / cadence - 0.05)) * cadence
             if (++frames > 30) {
@@ -3576,7 +3694,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             // passes here cost ~6M px/frame and starve the whole machine.
 
             ctx.setTransform(1, 0, 0, 1, 0, 0)
-            if (pAct > 0.001) {
+            if (pAct > 0.001 && v.glow > 0) {
                 const lk = adv.hazeColor
                 if (lk !== lightKey || !lightSpr) {
                     lightKey = lk

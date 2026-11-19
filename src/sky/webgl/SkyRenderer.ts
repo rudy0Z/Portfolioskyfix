@@ -114,6 +114,7 @@ export class SkyRenderer {
   private frameTimes: number[] = [];
   private startMs = performance.now();
   private dpr = 1;
+  readonly isSoftware: boolean;
 
   static create(canvas: HTMLCanvasElement, quality?: Partial<Quality>): SkyRenderer | null {
     const gl = canvas.getContext("webgl2", {
@@ -123,8 +124,16 @@ export class SkyRenderer {
       stencil: false,
       premultipliedAlpha: false,
       powerPreference: "high-performance",
+      failIfMajorPerformanceCaveat: true,
     });
     if (!gl || gl.isContextLost()) return null;
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    const rendererStr = String(
+      (dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) ?? ""
+    );
+    if (/swiftshader|llvmpipe|software|warp|mesa/i.test(rendererStr)) {
+      return null;
+    }
     try {
       return new SkyRenderer(canvas, gl, quality);
     } catch (err) {
@@ -136,13 +145,14 @@ export class SkyRenderer {
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext, quality?: Partial<Quality>) {
     this.canvas = canvas;
     this.gl = gl;
+    this.isSoftware = false;
     const coarse = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
     this.quality = {
-      steps: coarse ? 80 : 120,
+      steps: coarse ? 84 : 124,
       lightSteps: coarse ? 4 : 5,
-      scale: coarse ? 0.4 : 0.5,
-      minScale: 0.28,
-      maxScale: coarse ? 0.5 : 0.62,
+      scale: coarse ? 0.45 : 0.56,
+      minScale: 0.42,
+      maxScale: coarse ? 0.54 : 0.68,
       ...quality,
     };
 
@@ -315,16 +325,16 @@ export class SkyRenderer {
 
     const lit = hexToLinear(L.cloud.lit);
     const keyColor = useSun
-      ? scale3(lit, 0.2 + 0.95 * smoothstep(-0.2, 0.3, sunAlt) + 0.25 * L.golden)
-      : scale3(mix3(lit, [0.62, 0.7, 0.86], 0.4), 0.55 * moonKey);
+      ? scale3(lit, 0.24 + 0.96 * smoothstep(-0.2, 0.3, sunAlt) + 0.25 * L.golden)
+      : scale3(mix3(lit, [0.68, 0.78, 0.95], 0.46), 0.72 * Math.max(0.24, moonKey));
 
     const zenith = hexToLinear(p.zenith);
     const mid = hexToLinear(p.mid);
     const horizon = hexToLinear(p.horizon);
     const shadow = hexToLinear(p.cloudShadow);
     const haze = hexToLinear(p.haze);
-    const ambTop = scale3(mix3(zenith, mid, 0.5), 1.0);
-    const ambBottom = scale3(mix3(shadow, haze, 0.2), 0.62);
+    const ambTop = scale3(mix3(zenith, mid, 0.52), 1.06);
+    const ambBottom = scale3(mix3(shadow, haze, 0.26), 0.68);
 
     return {
       zenith,
@@ -333,7 +343,7 @@ export class SkyRenderer {
       haze,
       glow: hexToLinear(p.sunGlow),
       sunCore: hexToLinear(p.sunCore),
-      rim: scale3(hexToLinear(L.cloud.rim), useSun ? 0.6 + L.golden * 0.9 : 0.25 * moonKey),
+      rim: scale3(hexToLinear(L.cloud.rim), useSun ? 0.62 + L.golden * 0.9 : 0.38 * Math.max(0.25, moonKey)),
       sunDir,
       moonDir,
       keyDir: useSun ? sunDir : moonDir,
@@ -421,8 +431,8 @@ export class SkyRenderer {
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, this.cloudTex[src]);
       gl.uniform1i(c.u.uHistory, 2);
-      // Light history while things move fast, deeper when the scene is calm.
-      gl.uniform1f(c.u.uBlend, this.historyValid ? (opts.fast ? 0.45 : 0.12) : 1);
+      // Smooth temporal accumulation: responsive when scrubbing, silky when drifting.
+      gl.uniform1f(c.u.uBlend, this.historyValid ? (opts.fast ? 0.38 : 0.16) : 1);
       gl.uniform1f(c.u.uFrame, this.frame++ % 1024);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       this.ping = dst;

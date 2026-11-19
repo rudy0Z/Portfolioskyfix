@@ -5,7 +5,6 @@ import { RouterProvider, useRoute } from "@/router/Router";
 import { CodedSky, type SkyVariant } from "@/sky/CodedSky";
 import { Header } from "@/components/Header";
 import { CelestialNight } from "@/components/CelestialNight";
-import { ButterflyCursor } from "@/components/ButterflyCursor";
 import { ThermalSkyClock } from "@/sky/ThermalSkyClock";
 
 // Homepage Critical Path Components
@@ -29,16 +28,15 @@ function PortfolioContent() {
   const { path } = useRoute();
   const [variant] = useState<SkyVariant>("volumetric");
   const [clockSize, setClockSize] = useState<"thumbnail" | "full">("thumbnail");
-  // Remounting the TypeGarden loader replays the bloom (docked flower click).
+  // Remounting the TypeGarden loader replays the bloom (nav wordmark double-click).
   const [bloomKey, setBloomKey] = useState(0);
+
+  // Interactive atmosphere controls wired directly to the Solar Horizon Dial
+  const [cloudDrift, setCloudDrift] = useState(true);
+  const [nightStars, setNightStars] = useState(false);
 
   // Scroll-reveal engine — one class toggle per element, CSS carries motion.
   useReveal(path);
-
-  // Visual layer flags
-  const forceAurora = false;
-  const forceNight = false;
-  const butterflyEnabled = true;
 
   const isCaseRoute = path.startsWith("/case/");
 
@@ -53,7 +51,7 @@ function PortfolioContent() {
 
   return (
     <>
-      {/* ── TypeGarden intro: the botanical glass bloom, docking into the nav ── */}
+      {/* ── TypeGarden intro: typed Rudraksh bloom docking into the nav logo ── */}
       <TypeGardenLoader
         key={bloomKey}
         ignoreSession={bloomKey > 0}
@@ -65,34 +63,29 @@ function PortfolioContent() {
         }}
       />
 
-      {/* ── Persistent Raymarched / Halftone Sky Engine ──────────────── */}
+      {/* ── Persistent Raymarched / Volumetric Sky Engine ──────────────── */}
       <div className="sky-fixed">
-        <CodedSky variant={variant} />
+        <CodedSky variant={variant} still={!cloudDrift} />
       </div>
 
       {/* ── Celestial Night Pack (Shooting Stars & Aurora) ──────────── */}
-      <CelestialNight forceAurora={forceAurora} forceNight={forceNight} />
+      <CelestialNight forceAurora={nightStars} forceNight={nightStars} />
 
-      {/* ── Garden Butterfly Cursor Trail ───────────────────────────── */}
-      <ButterflyCursor enabled={butterflyEnabled} />
-
-      {/* ── Top chrome: wordmark left, links + sky clock right ──────────── */}
-      {/* On Case Study routes, the unified Floating Top Hub Capsule owns the top
-          chrome so there are never duplicate bars. */}
+      {/* ── Centered Floating Frosted Top Nav Capsule ─────────────────── */}
       {!isCaseRoute && (
         <Header
           onReplayBloom={() => setBloomKey((k) => k + 1)}
           clock={
-            <>
-              <ThermalSkyClock size={clockSize} onSizeChange={setClockSize} expandable={true} />
-              {clockSize === "full" && (
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setClockSize("thumbnail")}
-                  aria-hidden="true"
-                />
-              )}
-            </>
+            <ThermalSkyClock
+              size={clockSize}
+              onSizeChange={setClockSize}
+              expandable={true}
+              showTrigger={true}
+              cloudDrift={cloudDrift}
+              onToggleCloudDrift={() => setCloudDrift((v) => !v)}
+              nightStars={nightStars}
+              onToggleNightStars={() => setNightStars((v) => !v)}
+            />
           }
         />
       )}

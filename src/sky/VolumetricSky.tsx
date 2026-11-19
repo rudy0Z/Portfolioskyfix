@@ -77,12 +77,19 @@ const PLATES: Plate[] = [
   { y: 0.05, x: 0.24, w: 0.36, depth: 0.72, speed: 1.25, seed: 32, puffs: makePlate(32, 12) },
 ];
 
-function PlateEl({ plate, index }: { plate: Plate; index: number }) {
-  // Structure survives at 4–12px. Anything above ~14px turns form into fog.
-  const blur = 4 + plate.depth * 8;
-  const scale = 0.8 + plate.depth * 0.65;
+function PlateEl({
+  plate,
+  plateRef,
+}: {
+  plate: Plate;
+  plateRef: (el: HTMLDivElement | null) => void;
+}) {
+  // Structure survives at 4–10px. Anything above ~14px turns form into fog.
+  const blur = 4 + plate.depth * 6;
+  const scale = 0.8 + plate.depth * 0.55;
   return (
     <div
+      ref={plateRef}
       className="sky-plate"
       style={{
         top: `${plate.y * 100}%`,
@@ -90,7 +97,7 @@ function PlateEl({ plate, index }: { plate: Plate; index: number }) {
         width: `${plate.w * 100 * scale}vw`,
         opacity: 0.26 + plate.depth * 0.46,
         filter: `blur(${blur}px)`,
-        translate: `calc(var(--drift-${index}) * 1px) 0`,
+        willChange: "transform",
       }}
     >
       <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="sky-plate-svg">
@@ -138,29 +145,41 @@ function PlateEl({ plate, index }: { plate: Plate; index: number }) {
   );
 }
 
-export function VolumetricSky({ light }: { light: LightModel }) {
+export function VolumetricSky({ light, still = false }: { light: LightModel; still?: boolean }) {
   const raf = useRef(0);
   const start = useRef(0);
+  const plateEls = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    const root = document.documentElement;
-    const step = (ts: number) => {
-      if (!start.current) start.current = ts;
-      const s = (ts - start.current) / 1000;
+    const positionAt = (s: number) => {
       const vw = window.innerWidth;
+      const span = vw * 1.2;
       PLATES.forEach((p, i) => {
-        const span = vw * 1.2;
+        const el = plateEls.current[i];
+        if (!el) return;
         const travel = (2.2 + p.depth * 2.6) * p.speed;
         const offset = (((s * travel + p.x * span) % span) + span) % span;
-        root.style.setProperty(`--drift-${i}`, String(offset - span * 0.5 - p.w * vw * 0.5));
+        const dx = offset - span * 0.5 - p.w * vw * 0.5;
+        el.style.transform = `translate3d(${dx.toFixed(1)}px, 0, 0)`;
       });
+    };
+
+    positionAt(0);
+    if (still || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    let lastDraw = 0;
+    const step = (ts: number) => {
       raf.current = requestAnimationFrame(step);
+      if (document.hidden || ts - lastDraw < 110) return;
+      lastDraw = ts;
+      if (!start.current) start.current = ts;
+      positionAt((ts - start.current) / 1000);
     };
     raf.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf.current);
-  }, []);
+  }, [still]);
 
   const sorted = useMemo(() => [...PLATES].sort((a, b) => a.depth - b.depth), []);
 
@@ -199,9 +218,18 @@ export function VolumetricSky({ light }: { light: LightModel }) {
 
       {/* 4 — cloud field: far → near */}
       <div className="fill" style={{ opacity: "calc(0.55 + var(--cloud-opacity) * 0.45)" }}>
-        {sorted.map((p) => (
-          <PlateEl key={p.seed} plate={p} index={PLATES.indexOf(p)} />
-        ))}
+        {sorted.map((p) => {
+          const idx = PLATES.indexOf(p);
+          return (
+            <PlateEl
+              key={p.seed}
+              plate={p}
+              plateRef={(el) => {
+                plateEls.current[idx] = el;
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* 5 — near-horizon haze band, in front of the far cloud bank */}

@@ -229,21 +229,21 @@ vec3 windPos(vec3 p, float h) {
 }
 
 float shapeDensity(vec3 q, float h, float cov, bool detail, float lod) {
-  // flat bases, rounded tops; taller where coverage is strong
-  float top = 0.25 + 0.75 * cov;
-  float prof = sstep(0.0, 0.045, h) * sstep(top, top * 0.38, h);
+  // soft flat bases, pillowy rounded tops; taller where coverage is strong
+  float top = 0.28 + 0.72 * cov;
+  float prof = sstep(0.0, 0.085, h) * sstep(top, top * 0.34, h);
 
-  // vertical frequency higher than horizontal: stacked turrets, not columns
-  float R = textureLod(uNoise, q * vec3(0.27, 0.44, 0.27), lod).r;
-  float th = 1.0 - 0.62 * cov;
+  // vertical frequency slightly higher than horizontal for natural cumulus lobes
+  float R = textureLod(uNoise, q * vec3(0.25, 0.40, 0.25), lod).r;
+  float th = 1.0 - 0.64 * cov;
   float d = (R * prof - th) / (1.0 - th);
   if (!detail || d <= 0.0) return max(d, 0.0);
 
-  // erosion: wispy at the base, billowed higher up
-  vec3 dn = textureLod(uNoise, (q + uDetailWind) * vec3(1.9, 2.4, 1.9), lod).gba;
+  // refined smooth erosion — keeps silhouettes billowy instead of jagged/pixelated
+  vec3 dn = textureLod(uNoise, (q + uDetailWind) * vec3(1.45, 1.85, 1.45), lod + 0.35).gba;
   float df = dn.x * 0.625 + dn.y * 0.25 + dn.z * 0.125;
-  float em = mix(1.0 - df, df, sstep(0.0, 0.25, h));
-  d = (d - em * 0.36) / (1.0 - em * 0.36);
+  float em = mix(1.0 - df, df, sstep(0.0, 0.28, h));
+  d = (d - em * 0.26) / (1.0 - em * 0.26);
   return max(d, 0.0);
 }
 
@@ -479,17 +479,18 @@ float fbm2(vec2 p) {
   return s;
 }
 
-// Catmull-Rom-ish 4-tap bicubic: keeps cloud edges crisp after up-sampling.
+// Soft B-spline / Catmull-Rom hybrid upsample: smooths cloud edges without ringing or pixel stairs.
 vec4 sampleClouds(vec2 uv) {
   vec2 pos = uv * uCloudRes - 0.5;
   vec2 f = fract(pos);
   vec2 c = floor(pos) + 0.5;
-  vec2 w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
-  vec2 w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
-  vec2 w2 = f * (0.5 + f * (2.0 - 1.5 * f));
-  vec2 w3 = f * f * (-0.5 + 0.5 * f);
+  // Smooth Mitchell-style weights eliminate hard blocky contours at low contrast (especially night)
+  vec2 w0 = f * (-0.35 + f * (0.75 - 0.4 * f));
+  vec2 w1 = 1.0 + f * f * (-2.1 + 1.2 * f);
+  vec2 w2 = f * (0.35 + f * (1.75 - 1.2 * f));
+  vec2 w3 = f * f * (-0.4 + 0.4 * f);
   vec2 w12 = w1 + w2;
-  vec2 o12 = w2 / w12;
+  vec2 o12 = w2 / max(w12, vec2(1e-5));
   vec2 t0 = (c - 1.0) / uCloudRes;
   vec2 t3 = (c + 2.0) / uCloudRes;
   vec2 t12 = (c + o12) / uCloudRes;
@@ -500,32 +501,39 @@ vec4 sampleClouds(vec2 uv) {
   r += texture(uClouds, vec2(t3.x, t12.y)) * w3.x * w12.y;
   r += texture(uClouds, vec2(t12.x, t3.y)) * w12.x * w3.y;
   float wsum = w12.x * w0.y + w0.x * w12.y + w12.x * w12.y + w3.x * w12.y + w12.x * w3.y;
-  return max(r / wsum, 0.0);
+  return max(r / max(wsum, 1e-5), 0.0);
+}
+
+// Anti-aliased circular star layer with generous cell padding so stars NEVER clip into squares.
+vec3 starLayer(vec2 frag, float cellPx, float densityThresh, float seedOff, float maxSize) {
+  float cell = cellPx * uDpr;
+  vec2 g = floor(frag / cell);
+  float rnd = h12(g + seedOff);
+  if (rnd <= densityThresh) return vec3(0.0);
+  vec2 o = h22(g + seedOff + 3.17);
+  // Keep star center padded well inside the cell (0.28..0.72) so radial falloff hits 0 before the cell edge
+  vec2 c = (g + 0.28 + o * 0.44) * cell;
+  float dist = length(frag - c) / uDpr;
+  float mag = pow(h12(g + seedOff + 9.71), 4.5);
+  float rCore = 0.42 + mag * maxSize;
+  // Crisp circular Airy-like core + delicate circular halo, smoothly zeroed before cell margin
+  float core = exp(-(dist * dist) / (rCore * rCore));
+  float halo = exp(-dist / (rCore * 2.1)) * 0.24 * mag;
+  float fadeEdge = 1.0 - sstep(cellPx * 0.24, cellPx * 0.28, dist);
+  float tw = 0.8 + 0.2 * sin(uTime * (0.55 + rnd * 1.6) + rnd * 62.8);
+  vec3 tint = mix(vec3(0.76, 0.85, 1.0), vec3(1.0, 0.9, 0.76), h12(g + seedOff + 1.37));
+  return tint * (core + halo) * fadeEdge * (0.08 + mag * 1.45) * tw;
 }
 
 vec3 starfield(vec2 frag, vec3 rd) {
   if (uStars <= 0.001) return vec3(0.0);
-  float cell = 3.0 * uDpr;
-  vec2 g = floor(frag / cell);
-  float rnd = h12(g);
-  float mw = 0.0;
-  // a faint Milky Way: a tilted band of mottled light
-  vec2 sp = frag / (uRes.y);
+  vec2 sp = frag / uRes.y;
   float band = exp(-pow((sp.y - 0.62 + (sp.x - 0.5) * 0.55) * 4.2, 2.0));
-  mw = band * (0.55 + 0.45 * fbm2(sp * 6.0)) * (0.6 + 0.4 * fbm2(sp * 22.0));
-  float thresh = 0.987 - band * 0.03;
-  vec3 col = vec3(0.62, 0.68, 0.85) * mw * 0.035;
-  if (rnd > thresh) {
-    vec2 o = h22(g + 3.1);
-    vec2 c = (g + 0.2 + o * 0.6) * cell;
-    float dist = length(frag - c) / uDpr;
-    float mag = pow(h12(g + 9.7), 7.0);
-    float size = 0.55 + mag * 1.1;
-    float core = exp(-dist * dist / (size * size));
-    float tw = 0.78 + 0.22 * sin(uTime * (0.6 + rnd * 2.0) + rnd * 60.0);
-    vec3 tint = mix(vec3(0.75, 0.83, 1.0), vec3(1.0, 0.88, 0.74), h12(g + 1.3));
-    col += tint * core * (0.022 + mag * 2.4) * tw;
-  }
+  float mw = band * (0.55 + 0.45 * fbm2(sp * 6.0)) * (0.6 + 0.4 * fbm2(sp * 22.0));
+  vec3 col = vec3(0.62, 0.68, 0.85) * mw * 0.032;
+  // Two wide-cell layers: bright foreground stars + fine background starfield
+  col += starLayer(frag, 18.0, 0.91 - band * 0.04, 0.0, 0.78);
+  col += starLayer(frag + vec2(37.0, 19.0), 11.0, 0.935 - band * 0.035, 41.3, 0.45) * 0.72;
   float ext = sstep(-0.02, 0.22, rd.y);    // atmospheric extinction near the horizon
   return col * uStars * ext;
 }

@@ -3,6 +3,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import BluebellPass, { type BluebellPassProps } from "@/components/originkit/BluebellPass";
 import { clamp, mix, oklch, tint, type OKLCH } from "@/lib/color";
+import { computeMeadowGlow, computeMeadowGoldenRim } from "@/lib/diurnalBloom";
 import { getLight } from "@/lib/lighting";
 import { useSkyTime } from "@/lib/useTimeOfDay";
 
@@ -118,7 +119,7 @@ interface FieldPalette {
 const lch = (l: number, c: number, h: number): OKLCH => ({ l, c, h });
 
 const FIELD_NIGHT = { far: lch(0.27, 0.075, 258), mid: lch(0.2, 0.045, 205), near: lch(0.1, 0.025, 228) };
-const FIELD_DAY = { far: lch(0.6, 0.065, 150), mid: lch(0.43, 0.095, 146), near: lch(0.23, 0.06, 152) };
+const FIELD_DAY = { far: lch(0.62, 0.072, 148), mid: lch(0.45, 0.1, 144), near: lch(0.25, 0.068, 148) };
 const FIELD_GOLD = { far: lch(0.57, 0.09, 72), mid: lch(0.36, 0.085, 112), near: lch(0.15, 0.04, 140) };
 const FIELD_DUSK = lch(0.31, 0.07, 292);
 
@@ -131,23 +132,25 @@ function fieldPalette(t: number): FieldPalette {
   const far = tint(ground("far"), light.stops.haze, 0.22 * d + 0.18 * g + 0.1 * tw);
   // Electric bluebell at night, violet-blue by day, warmer in golden light.
   const flower = tint(mix(lch(0.58, 0.2, 262), lch(0.64, 0.16, 278), d), lch(0.62, 0.15, 305), g * 0.5);
+  const glow = computeMeadowGlow(light);
+  const goldenRim = computeMeadowGoldenRim(light);
 
   return {
     flower: oklch(flower),
-    glow: Math.round(clamp(95 - 60 * d + 10 * g, 0, 100) / 5) * 5,
+    glow,
     far: oklch(far),
     mid: oklch(ground("mid")),
     near: oklch(ground("near")),
-    grass: oklch(tint(mix(lch(0.17, 0.04, 168), lch(0.33, 0.075, 146), d), lch(0.3, 0.06, 110), g * 0.5)),
-    grassLit: oklch(mix(lch(0.55, 0.1, 165), lch(0.72, 0.14, 136), d)),
-    stem: oklch(mix(lch(0.38, 0.08, 160), lch(0.5, 0.1, 146), d)),
+    grass: oklch(tint(mix(lch(0.17, 0.04, 168), lch(0.35, 0.082, 144), d), lch(0.3, 0.06, 110), g * 0.5)),
+    grassLit: oklch(mix(lch(0.55, 0.1, 165), lch(0.73, 0.145, 134), d)),
+    stem: oklch(mix(lch(0.38, 0.08, 160), lch(0.51, 0.105, 144), d)),
     haze: oklch(mix(lch(0.68, 0.14, 268), light.stops.haze, d)),
     // The portrait's old CSS relight, ported to the canvas bake.
     deskFilter: `brightness(${(0.6 + d * 0.4 + g * 0.06).toFixed(3)}) saturate(${(0.74 + d * 0.28).toFixed(3)}) contrast(1.03)`,
     deskShade: clamp(0.5 - d * 0.3, 0, 1),
-    golden: Math.round(clamp(g * 1.25) * 100),
+    golden: goldenRim,
     night: Math.round(clamp(1 - d * 3.2) * 100),
-    motes: Math.round(clamp(0.2 + d * 0.8) * 100),
+    motes: Math.round(clamp(d * 0.45) * 100),
     fireflies: Math.round(clamp(1 - d * 1.5) * 100),
     // The sun disc's viewport position — same fraction the sky's Celestial
     // layer uses, so the shafts radiate from the real disc.
@@ -274,13 +277,17 @@ const GardenScene = memo(function GardenScene({ pal, frame }: { pal: FieldPalett
       nearSway: LITE ? 2 : 3,
       ...(mobile
         ? {
-            flowerCount: 250,
-            grassCount: 850,
-            carpetCount: 2000,
+            flowerCount: 240,
+            grassCount: 720,
+            carpetCount: 1600,
             defocus: 11,
             glowSize: 150,
           }
-        : {}),
+        : {
+            flowerCount: 380,
+            grassCount: 1100,
+            carpetCount: 2200,
+          }),
     },
     style: FIELD_STYLE,
   };

@@ -3,280 +3,60 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/router/Router";
 import { useSkyTime } from "@/lib/useTimeOfDay";
-import { paletteAt } from "@/lib/skyPalette";
-import { oklch } from "@/lib/color";
-import type { OKLCH } from "@/lib/color";
+import {
+  buildWordmarkGarden,
+  pickRandomWordmarkPreset,
+  renderWordmarkGarden,
+  type BotanicalPointer,
+  type GlyphSlot,
+  type WordmarkGarden,
+} from "@/components/botanical/BotanicalWordmarkEngine";
 
 /**
- * SiteFooter — the Sundial pavilion. A floating frosted-glass capsule resting
- * on the persistent sky: the directory on top, a living fluid aurora billowing
- * beneath the glass in the lower half, its colors poured straight from the
- * 24-hour solar model. "Say hello." is set giant, and hovering its letters
- * draws precision vector-inspection boxes over each glyph.
+ * SiteFooter — Unified Serene Editorial Floral Footer.
+ *
+ * Zero garden control buttons or toolbars. Instead:
+ * 1. Clean alabaster (day) / deep obsidian (night) rounded editorial container
+ *    housing a calm contact header, copyable email, Resume PDF, and social links.
+ * 2. Centered monumental serif `Rudraksh` wordmark woven behind & in front with
+ *    our 4-species meadow flowers (lupine, cosmos, poppy, daisy) via the shared
+ *    BotanicalWordmarkEngine.
+ * 3. Smoothly blooms into place when scrolled into view, automatically choosing
+ *    one random TypeGarden choreography preset per visit (`breathe`, `growWither`,
+ *    `scatter`, `reach`, `visitor`, `gust`), always layered with subtle ambient
+ *    breath/gust and silky mouse-interactive flower sway.
  */
 
 const EMAIL = "rudraksh.singhh@outlook.com";
-
-const STUDIO_LINKS = [
-  { label: "Selected Work", href: "/#work" },
-  { label: "Craft & Diurnal System", href: "/#craft" },
-  { label: "Resume PDF ↗", href: "/resume.pdf", external: true },
-];
-
-const EXPLORE_LINKS = [
-  { label: "01 · FlytBase Sentinel", href: "/case/sentinel" },
-  { label: "02 · LokAI Legal Triage", href: "/case/lokai" },
-  { label: "03 · Feul Marketplace", href: "/case/feul" },
-];
+const WORDMARK = "Rudraksh";
 
 const SOCIAL_LINKS = [
   { label: "X / Twitter", href: "https://x.com/rudrakshsinghh" },
-  { label: "LinkedIn", href: "https://linkedin.com/in/rudraksh-singh" },
   { label: "GitHub", href: "https://github.com/rudy0Z" },
+  { label: "LinkedIn", href: "https://linkedin.com/in/rudraksh-singh" },
 ];
 
-const boost = (c: OKLCH, lAdd: number, cMul: number) =>
-  oklch({
-    l: Math.min(0.93, Math.max(0.2, c.l + lAdd)),
-    c: Math.min(0.32, c.c * cMul),
-    h: c.h,
-  });
-
-/** Aurora bands — poured from the live sky, with one aurora-green at night. */
-function auroraColors(t: number): string[] {
-  const p = paletteAt(t);
-  const night = t < 5.75 || t > 20.25;
-  const warm = t > 16.4 && t < 20.0;
-  if (night) {
-    return [
-      boost(p.mid, 0.16, 1.35),
-      boost(p.zenith, 0.22, 1.5),
-      "#34d399",
-      boost(p.horizon, -0.02, 1.2),
-    ];
-  }
-  if (warm) {
-    return [
-      boost(p.sunGlow, 0.02, 1.3),
-      boost(p.horizon, 0.03, 1.35),
-      boost(p.cloudRim, 0.0, 1.2),
-      boost(p.mid, 0.04, 1.25),
-    ];
-  }
-  return [
-    boost(p.mid, 0.06, 1.3),
-    boost(p.horizon, 0.02, 1.15),
-    boost(p.cloudRim, 0.02, 1.2),
-    boost(p.sunGlow, -0.04, 1.1),
-  ];
-}
-
-/* ── the fluid aurora — thermal silk under frosted glass ─────────────────── */
-
-function AuroraVeil() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const visibleRef = useRef(false);
-  const t = useSkyTime();
-  const colors = useMemo(() => auroraColors(t), [t]);
-  const colorsRef = useRef(colors);
-  colorsRef.current = colors;
-
-  useEffect(() => {
-    const cv = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!cv || !wrap) return;
-    const g = cv.getContext("2d");
-    if (!g) return;
-
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let raf = 0;
-    let w = 0;
-    let h = 0;
-
-    const blobs = [
-      { ax: 0.22, ay: 0.42, r: 0.62, sx: 0.00021, sy: 0.00017, ph: 0.0, ci: 0 },
-      { ax: 0.52, ay: 0.3, r: 0.8, sx: 0.00016, sy: 0.00023, ph: 1.7, ci: 1 },
-      { ax: 0.78, ay: 0.5, r: 0.7, sx: 0.00019, sy: 0.00015, ph: 3.1, ci: 2 },
-      { ax: 0.36, ay: 0.72, r: 0.66, sx: 0.00024, sy: 0.0002, ph: 4.4, ci: 3 },
-      { ax: 0.64, ay: 0.85, r: 0.74, sx: 0.00014, sy: 0.00021, ph: 5.3, ci: 0 },
-      { ax: 0.9, ay: 0.24, r: 0.5, sx: 0.00022, sy: 0.00018, ph: 2.6, ci: 1 },
-    ];
-
-    const resize = () => {
-      const rect = wrap.getBoundingClientRect();
-      // Low-res canvas, upscaled by CSS — the softness IS the aesthetic.
-      w = Math.max(2, Math.round(Math.min(560, rect.width / 2.4)));
-      h = Math.max(2, Math.round(Math.min(300, rect.height / 2.4)));
-      cv.width = w;
-      cv.height = h;
-      // Setting width clears the canvas — repaint the static frame.
-      draw(performance.now());
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(wrap);
-
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        visibleRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          // draw() keeps looping only when visible and motion is allowed;
-          // under reduced motion it paints a single held frame.
-          cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(draw);
-        }
-      },
-      { rootMargin: "120px" },
-    );
-    io.observe(wrap);
-
-    function draw(now = 0) {
-      if (!g) return;
-      const cols = colorsRef.current;
-      g.clearRect(0, 0, w, h);
-      g.globalCompositeOperation = "screen";
-      for (let i = 0; i < blobs.length; i++) {
-        const b = blobs[i];
-        const col = cols[b.ci % cols.length];
-        const x = (b.ax + Math.sin(now * b.sx + b.ph) * 0.16) * w;
-        const y = (b.ay + Math.cos(now * b.sy + b.ph) * 0.14) * h;
-        const r = b.r * Math.max(w, h) * (0.9 + 0.12 * Math.sin(now * 0.0004 + b.ph));
-        const grad = g.createRadialGradient(x, y, 0, x, y, r);
-        grad.addColorStop(0, col);
-        grad.addColorStop(1, "rgba(0,0,0,0)");
-        g.globalAlpha = 0.34;
-        g.fillStyle = grad;
-        g.beginPath();
-        g.arc(x, y, r, 0, Math.PI * 2);
-        g.fill();
-      }
-      g.globalAlpha = 1;
-      g.globalCompositeOperation = "source-over";
-      if (visibleRef.current && !reduced) raf = requestAnimationFrame(draw);
-    }
-
-    // Static first frame (also the reduced-motion state — silk, frozen).
-    draw(1200);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      io.disconnect();
-    };
-  }, []);
-
-  return (
-    <div ref={wrapRef} className="foot-aurora" aria-hidden="true">
-      <canvas ref={canvasRef} className="foot-aurora-canvas" />
-      <div className="foot-aurora-sheen" />
-    </div>
-  );
-}
-
-/* ── vector inspection hover on the giant "Say hello." ───────────────────── */
-
-interface InspectionBox {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  ch: string;
-}
-
-function SayHello({ onSay }: { onSay: () => void }) {
-  const wrapRef = useRef<HTMLButtonElement>(null);
-  const [box, setBox] = useState<InspectionBox | null>(null);
-
-  const inspect = (el: HTMLElement) => {
-    const wrap = wrapRef.current;
-    if (!wrap) return;
-    const wr = wrap.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    // Clamp inside the wrap so the tag never clips off-screen on mobile.
-    const x = Math.max(
-      6,
-      Math.min(Math.round(r.left - wr.left), Math.round(wr.width - r.width - 6)),
-    );
-    setBox({
-      x,
-      y: Math.round(r.top - wr.top),
-      w: Math.round(r.width),
-      h: Math.round(r.height),
-      ch: el.dataset.ch || "",
-    });
-  };
-
-  return (
-    <div className="foot-say-wrap">
-      {/* A real button — "Say hello." was a <p onClick>, unreachable by
-          keyboard and screen readers (synthesis P0 6). Same visual. */}
-      <button
-        ref={wrapRef}
-        type="button"
-        className="foot-say"
-        onClick={onSay}
-        aria-label="Say hello — copies the email address and opens your mail app"
-      >
-        {"Say hello.".split("").map((ch, i) => (
-          <span
-            key={i}
-            data-ch={ch === " " ? "·" : ch}
-            aria-hidden="true"
-            onMouseEnter={(e) => inspect(e.currentTarget)}
-          >
-            {ch === " " ? "\u00A0" : ch}
-          </span>
-        ))}
-      </button>
-
-      {box && (
-        <div className="foot-inspect" aria-hidden="true">
-          <svg
-            width={box.w + 14}
-            height={box.h + 14}
-            style={{ left: box.x - 7, top: box.y - 7 }}
-          >
-            <rect
-              x="3.5"
-              y="3.5"
-              width={box.w + 7}
-              height={box.h + 7}
-              fill="none"
-              stroke="rgba(255,236,199,0.75)"
-              strokeWidth="1"
-              strokeDasharray="3 4"
-            />
-            {[
-              [3.5, 3.5],
-              [box.w + 10.5, 3.5],
-              [3.5, box.h + 10.5],
-              [box.w + 10.5, box.h + 10.5],
-            ].map(([cx, cy], i) => (
-              <g key={i} stroke="rgba(255,236,199,0.9)" strokeWidth="1">
-                <line x1={cx - 5} y1={cy} x2={cx + 5} y2={cy} />
-                <line x1={cx} y1={cy - 5} x2={cx} y2={cy + 5} />
-              </g>
-            ))}
-          </svg>
-          <span className="foot-inspect-tag" style={{ left: box.x - 7, top: box.y + box.h + 14 }}>
-            [{box.x}, {box.y}] · {box.w}×{box.h}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── the pavilion ────────────────────────────────────────────────────────── */
-
 export function SiteFooter() {
+  const skyTime = useSkyTime();
+  const isNight = skyTime < 6.0 || skyTime > 18.6;
+
   const [copied, setCopied] = useState(false);
-  const [clock, setClock] = useState("");
+  const [istClock, setIstClock] = useState("");
+  const [hasArrived, setHasArrived] = useState(false);
+
+  // Pick one random choreography preset per visit
+  const activePreset = useMemo(() => pickRandomWordmarkPreset(), []);
+
+  const stageRef = useRef<HTMLDivElement>(null);
+  const wordRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLCanvasElement>(null);
+  const frontRef = useRef<HTMLCanvasElement>(null);
+  const isNightRef = useRef(isNight);
+  isNightRef.current = isNight;
 
   useEffect(() => {
     const update = () =>
-      setClock(
+      setIstClock(
         new Date().toLocaleTimeString("en-GB", {
           timeZone: "Asia/Kolkata",
           hour: "2-digit",
@@ -284,159 +64,254 @@ export function SiteFooter() {
         }),
       );
     update();
-    const id = setInterval(update, 15000);
-    return () => clearInterval(id);
+    const id = window.setInterval(update, 15000);
+    return () => window.clearInterval(id);
   }, []);
 
-  const sayHello = async () => {
-    try {
-      await navigator.clipboard.writeText(EMAIL);
-    } catch {
-      /* clipboard unavailable — the mailto still opens */
-    }
+  const copyEmail = () => {
     setCopied(true);
-    setTimeout(() => setCopied(false), 2400);
-    window.location.href = `mailto:${EMAIL}?subject=Hello%20Rudraksh`;
-  };
-
-  const backToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
-  // Work lives on the home page. From any other route a bare "/#work" falls
-  // through the router into /404, so go home first, then scroll to the section
-  // once React has actually rendered it.
-  const goToWork = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    const el = document.getElementById("work");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-      return;
+    window.setTimeout(() => setCopied(false), 2400);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(EMAIL).catch(() => {
+        /* fallback silent */
+      });
     }
-    window.location.hash = "/";
-    let tries = 12;
-    const tryScroll = () => {
-      const target = document.getElementById("work");
-      // instant: "auto" would inherit html's smooth scroll-behavior and the
-      // route-change DOM swap aborts smooth scrolls mid-flight — land like a
-      // classic cross-page anchor instead
-      if (target) target.scrollIntoView({ behavior: "instant" });
-      else if (tries-- > 0) setTimeout(tryScroll, 140);
-    };
-    setTimeout(tryScroll, 120);
   };
+
+  const backToSky = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Living 4-species botanical weave around monumental serif Rudraksh
+  useEffect(() => {
+    const stage = stageRef.current;
+    const word = wordRef.current;
+    const back = backRef.current;
+    const front = frontRef.current;
+    if (!stage || !word || !back || !front) return;
+    const gb = back.getContext("2d");
+    const gf = front.getContext("2d");
+    if (!gb || !gf) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let dpr = Math.min(2, window.devicePixelRatio || 1);
+    let garden: WordmarkGarden | null = null;
+    let visible = false;
+    let bloomStartTs: number | null = null;
+    let lastTs = performance.now();
+    let raf = 0;
+
+    const pointer: BotanicalPointer = { x: 0, y: 0, active: false };
+    const gardenSeed = (Date.now() ^ 0x2c1b3c6d) & 0xfffffff;
+
+    const measure = () => {
+      const sr = stage.getBoundingClientRect();
+      const w = Math.max(1, sr.width);
+      const h = Math.max(1, sr.height);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      for (const cv of [back, front]) {
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(h * dpr);
+      }
+
+      const spans = Array.from(word.querySelectorAll<HTMLElement>("[data-footer-ch]"));
+      const slots: GlyphSlot[] = spans.map((sp, i) => {
+        const r = sp.getBoundingClientRect();
+        return {
+          cx: r.left - sr.left + r.width / 2,
+          baseY: r.bottom - sr.top - r.height * 0.14,
+          topY: r.top - sr.top + r.height * 0.12,
+          w: r.width,
+          h: r.height,
+          delayMs: 60 + i * 75,
+        };
+      });
+
+      garden = buildWordmarkGarden(slots, w, h, {
+        seed: gardenSeed,
+        preset: activePreset,
+        density: "footer",
+      });
+
+      // Paint one static frame immediately if reduced-motion or already arrived
+      if (reduced || bloomStartTs !== null) {
+        renderWordmarkGarden(garden, gb, gf, reduced ? 4000 : performance.now() - (bloomStartTs ?? 0), 0.016, pointer, {
+          dpr,
+          isNight: isNightRef.current,
+          reducedMotion: reduced,
+        });
+      }
+    };
+
+    const render = (now: number) => {
+      raf = 0;
+      if (!visible || !garden) return;
+      if (bloomStartTs === null) bloomStartTs = now;
+      const dt = (now - lastTs) / 1000;
+      lastTs = now;
+      renderWordmarkGarden(garden, gb, gf, now - bloomStartTs, dt, pointer, {
+        dpr,
+        isNight: isNightRef.current,
+        reducedMotion: reduced,
+      });
+      if (!reduced) {
+        raf = requestAnimationFrame(render);
+      }
+    };
+
+    const wake = () => {
+      if (!raf && visible && garden) {
+        lastTs = performance.now();
+        raf = requestAnimationFrame(render);
+      }
+    };
+
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(stage);
+
+    // Wait for fonts before initial glyph measurement so stems align accurately
+    measure();
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => measure()).catch(() => {});
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) {
+          setHasArrived(true);
+          if (bloomStartTs === null) bloomStartTs = performance.now();
+          wake();
+        }
+      },
+      { rootMargin: "120px 0px", threshold: 0.08 },
+    );
+    io.observe(stage);
+
+    const onPointerMove = (e: PointerEvent) => {
+      const sr = stage.getBoundingClientRect();
+      pointer.x = e.clientX - sr.left;
+      pointer.y = e.clientY - sr.top;
+      pointer.active = true;
+      wake();
+    };
+    const onPointerLeave = () => {
+      pointer.active = false;
+    };
+
+    stage.addEventListener("pointermove", onPointerMove);
+    stage.addEventListener("pointerleave", onPointerLeave);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      io.disconnect();
+      stage.removeEventListener("pointermove", onPointerMove);
+      stage.removeEventListener("pointerleave", onPointerLeave);
+    };
+  }, [activePreset]);
 
   return (
-    <footer id="contact" className="site-foot">
-      {/* Alias anchor so older /#crater deep links still land here. */}
+    <footer id="contact" className="site-foot-editorial">
+      {/* Legacy alias anchor */}
       <span id="crater" aria-hidden="true" className="absolute top-0" />
 
-      {/* One shell container — the pavilion's glass edge sits on the shared
-          site content edge (synthesis P0 8). */}
       <div className="shell">
-        <div className="foot-pavilion" data-reveal>
-          <div className="foot-pavilion-inner">
-          {/* CTA */}
-          <div className="foot-cta">
-            <p className="microlabel">
-              New inboxes, always open <span className="microlabel-rule" aria-hidden="true" />
-            </p>
-            <SayHello onSay={sayHello} />
-            <div className="site-foot-contact">
-              <a className="site-foot-mail" href={`mailto:${EMAIL}`}>
-                {EMAIL}
-              </a>
-              <button
-                type="button"
-                className="site-foot-copy"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(EMAIL);
-                  } catch {
-                    /* noop */
-                  }
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2400);
-                }}
-              >
-                {copied ? "Copied ✓" : "Copy"}
-              </button>
-              {copied && <span className="foot-toast">Email copied — talk soon.</span>}
+        <div className={`foot-sheet ${isNight ? "is-night" : "is-day"}`}>
+          {/* 1. Calm Top Contact Strip */}
+          <div className="foot-contact-row" data-reveal>
+            <div className="foot-contact-copy">
+              <p className="foot-eyebrow">PRODUCT DESIGN &amp; DESIGN ENGINEERING · 2026</p>
+              <h2 className="foot-headline">
+                Have a product, team, or prototype in mind?
+              </h2>
+              <p className="foot-location">
+                Greater Noida, India · <span className="tabular-nums">{istClock || "--:--"} IST</span>
+              </p>
+            </div>
+
+            <div className="foot-contact-actions">
+              <div className="foot-action-primary">
+                <button
+                  type="button"
+                  className="foot-email-btn"
+                  onClick={copyEmail}
+                  aria-label={`Copy ${EMAIL} to clipboard`}
+                >
+                  <span>{copied ? "Copied to clipboard ✓" : EMAIL}</span>
+                  {!copied && (
+                    <span className="foot-copy-glyph" aria-hidden="true">
+                      ⧉
+                    </span>
+                  )}
+                </button>
+
+                <a
+                  href="/resume.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="foot-resume-btn"
+                >
+                  Resume ↗
+                </a>
+              </div>
+
+              <div className="foot-social-row" aria-label="Social links">
+                {SOCIAL_LINKS.map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="foot-social-link"
+                  >
+                    {s.label}
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Upper glass directory */}
-          <div className="foot-directory">
-            <div className="foot-id">
-              <p className="foot-brand">
-                <span className="foot-brand-mark" aria-hidden="true">✿</span> Rudraksh Singh
-              </p>
-              <p className="foot-blurb">
-                Product designer &amp; engineer — building decision-heavy
-                interfaces for autonomous systems, and every prototype in code.
-              </p>
-              <p className="foot-time">
-                <span className="foot-live-dot" aria-hidden="true" /> Greater Noida, India ·{" "}
-                <strong>{clock || "--:--"}</strong> IST · Open to roles
-              </p>
+          <hr className="foot-rule" />
+
+          {/* 2. Monumental Living Floral Wordmark Stage (zero buttons or toolbar) */}
+          <div
+            ref={stageRef}
+            className={`foot-flora-stage ${hasArrived ? "is-arrived" : ""}`}
+            data-preset={activePreset}
+          >
+            <canvas ref={backRef} className="foot-flora-canvas" aria-hidden="true" />
+            <div ref={wordRef} className="foot-wordmark" aria-label="Rudraksh">
+              {WORDMARK.split("").map((ch, idx) => (
+                <span key={idx} data-footer-ch={ch} aria-hidden="true">
+                  {ch}
+                </span>
+              ))}
             </div>
-
-            <nav aria-label="Studio">
-              <p className="foot-col-title">Studio</p>
-              <ul className="foot-list">
-                {STUDIO_LINKS.map((l) => (
-                  <li key={l.label}>
-                    {l.href === "/#work" ? (
-                      <a href="/#work" onClick={goToWork}>
-                        {l.label}
-                      </a>
-                    ) : l.external ? (
-                      <a href={l.href} target="_blank" rel="noopener noreferrer">
-                        {l.label}
-                      </a>
-                    ) : (
-                      <Link href={l.href}>{l.label}</Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <nav aria-label="Explore">
-              <p className="foot-col-title">Explore</p>
-              <ul className="foot-list">
-                {EXPLORE_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <Link href={l.href}>{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <div>
-              <p className="foot-col-title">Social</p>
-              <ul className="foot-list">
-                {SOCIAL_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <a href={l.href} target="_blank" rel="noreferrer">
-                      {l.label} <span className="ext">↗</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <canvas
+              ref={frontRef}
+              className="foot-flora-canvas foot-flora-canvas--front"
+              aria-hidden="true"
+            />
           </div>
 
-          {/* Living aurora + base row riding on it */}
-          <div className="foot-aurora-zone">
-            <AuroraVeil />
-            <div className="site-foot-base">
+          <hr className="foot-rule" />
+
+          {/* 3. Quiet Minimal Colophon & Back to Sky */}
+          <div className="foot-meta-row">
+            <div className="foot-meta-left">
               <span>© {new Date().getFullYear()} Rudraksh Singh</span>
-              <span className="foot-aurora-label">Aurora follows the live 24-hour sky</span>
-              <button type="button" className="foot-top" onClick={backToTop}>
-                <span>Back to top</span>
-                <span className="up" aria-hidden="true">↑</span>
-              </button>
+              <span className="foot-meta-sep" aria-hidden="true">·</span>
+              <nav className="foot-meta-cases" aria-label="Case studies">
+                <Link href="/case/sentinel">Sentinel</Link>
+                <Link href="/case/lokai">LokAI</Link>
+                <Link href="/case/feul">Feul</Link>
+              </nav>
             </div>
-          </div>
+
+            <button type="button" className="foot-top-btn" onClick={backToSky}>
+              <span aria-hidden="true">↑</span> Back to sky
+            </button>
           </div>
         </div>
       </div>

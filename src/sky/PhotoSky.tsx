@@ -63,7 +63,8 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
     rendererRef.current = renderer;
     renderer.setLight(lightRef.current);
 
-    const reduced = still || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isSoftware = renderer.isSoftware;
+    const reduced = still || isSoftware || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
     let lastDraw = 0;
     let lastScroll = -1;
@@ -71,7 +72,7 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
     let first = true;
     let prevRaf = 0;
     let renderedPrev = false;
-    // reduced motion: after a change, render a few frames so the temporal
+    // reduced motion / software GL: after a change, render a few frames so the temporal
     // accumulation settles, then stop
     let settle = 0;
     let cadenceFlip = 0;
@@ -109,7 +110,7 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
         dirty.current = true;
       }
       const busy = now - scrollAt < 400 || now - lapse.current.changedAt < 400;
-      if (dirty.current) settle = 10;
+      if (dirty.current) settle = isSoftware ? 3 : 10;
       if (reduced) {
         if (settle <= 0) return;
       } else if (!busy && !dirty.current && now - lastDraw < 33) {
@@ -163,7 +164,7 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
     };
   }, [still]);
 
-  if (failed) return <VolumetricSky light={light} />;
+  if (failed) return <VolumetricSky light={light} still={still} />;
 
   return (
     <div className="fill photo-sky" data-sky-variant="volumetric" data-ready={ready} aria-hidden>

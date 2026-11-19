@@ -48,7 +48,7 @@ function parseLocation(): { path: RoutePath; params: URLSearchParams } {
   const clean = ("/" + raw).replace(/\/+$/, "") || "/";
 
   // Support anchor hashes & legacy secondary page redirects to homepage sections
-  const anchorAliases = ["/work", "/home", "/hero", "/craft", "/contact", "/about", "/projects", "/journal"];
+  const anchorAliases = ["/work", "/home", "/hero", "/craft", "/process", "/contact", "/about", "/projects", "/journal"];
   if (anchorAliases.includes(clean)) {
     return { path: "/", params };
   }

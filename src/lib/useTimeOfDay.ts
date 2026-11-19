@@ -22,8 +22,22 @@ import {
 
 export type SyncMode = "auto" | "manual";
 
-let current: SkyTime = 12;
-let syncMode: SyncMode = "manual";
+function readInitialTime(): { t: SkyTime; mode: SyncMode } {
+  if (typeof window !== "undefined") {
+    const raw = new URLSearchParams(window.location.search).get("t");
+    if (raw) {
+      const [h, m] = raw.split(":").map(Number);
+      if (Number.isFinite(h)) {
+        return { t: (((h + (m || 0) / 60) % 24) + 24) % 24, mode: "manual" };
+      }
+    }
+  }
+  return { t: 12, mode: "manual" };
+}
+
+const initial = readInitialTime();
+let current: SkyTime = initial.t;
+let syncMode: SyncMode = initial.mode;
 let mounted = false;
 
 const listeners = new Set<() => void>();
