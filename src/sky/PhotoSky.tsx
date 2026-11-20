@@ -110,7 +110,7 @@ export function PhotoSky({ light, still = false }: { light: LightModel; still?: 
         dirty.current = true;
       }
       const busy = now - scrollAt < 400 || now - lapse.current.changedAt < 400;
-      if (dirty.current) settle = isSoftware ? 3 : 10;
+      if (dirty.current) settle = isSoftware ? 1 : 10;
       if (reduced) {
         if (settle <= 0) return;
       } else if (!busy && !dirty.current && now - lastDraw < 33) {

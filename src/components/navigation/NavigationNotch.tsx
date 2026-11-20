@@ -20,15 +20,15 @@ interface NavLinkItem {
 
 const NAV_LINKS: NavLinkItem[] = [
   { href: "/#work", label: "Work" },
-  { href: "/#about", label: "Belief" },
   { href: "/#contact", label: "Contact" },
   { href: "/resume.pdf", label: "Resume ↗", externalPdf: true },
 ];
 
 /*
- * NavigationNotch — Centered Floating Editorial Top Nav Capsule.
- * Houses the unified botanical serif Rudraksh logo left (no diamond icon),
- * lean navigation in the middle, and the adaptive solar time pill right.
+ * NavigationNotch — Full-Width Unboxed Editorial Top Bar.
+ * Left: razor-sharp lowercase serif `rudraksh` wordmark.
+ * Center: quiet unboxed typographic nav links (`Work`, `Contact`, `Resume ↗`).
+ * Right: docked solar time trigger opening the 180° sundial cleanly over the upper-right sky.
  */
 export function NavigationNotch({ clock, onReplayBloom, className = "" }: NavigationNotchProps) {
   const { path } = useRoute();
@@ -47,7 +47,6 @@ export function NavigationNotch({ clock, onReplayBloom, className = "" }: Naviga
 
       const sections: { id: string; href: string }[] = [
         { id: "contact", href: "/#contact" },
-        { id: "about", href: "/#about" },
         { id: "work", href: "/#work" },
       ];
       for (const s of sections) {
@@ -72,15 +71,13 @@ export function NavigationNotch({ clock, onReplayBloom, className = "" }: Naviga
 
   return (
     <header className={`site-nav-host ${isScrolled ? "is-scrolled" : ""} ${className}`}>
-      <div className="site-nav-capsule">
-        {/* Left: Unified botanical serif Rudraksh logo (no geometric diamond) */}
+      <div className="shell site-nav-bar">
+        {/* Zone 1 (Left): Lowercase editorial serif `rudraksh` wordmark */}
         <div className="site-brand">
           <NavBotanicalLogo onReplayBloom={onReplayBloom} />
         </div>
 
-        <span className="site-nav-divider" aria-hidden="true" />
-
-        {/* Middle: Lean desktop navigation (100% visible at >= 1024px) */}
+        {/* Zone 2 (Center): Quiet unboxed typographic nav links */}
         <nav className="site-links" aria-label="Primary navigation">
           {NAV_LINKS.map((link) => {
             if (link.externalPdf) {
@@ -110,9 +107,7 @@ export function NavigationNotch({ clock, onReplayBloom, className = "" }: Naviga
           })}
         </nav>
 
-        <span className="site-nav-divider site-nav-divider--right" aria-hidden="true" />
-
-        {/* Right: Adaptive solar time pill + mobile-only menu trigger */}
+        {/* Zone 3 (Right): Solar time trigger docked at right edge + mobile menu */}
         <div className="site-right">
           {clock}
 
@@ -123,7 +118,7 @@ export function NavigationNotch({ clock, onReplayBloom, className = "" }: Naviga
             aria-label="Toggle navigation menu"
             aria-expanded={isMobileDrawerOpen}
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current" fill="none" strokeWidth="1.8">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current" fill="none" strokeWidth="1.6">
               {isMobileDrawerOpen ? <path d="M6 18L18 6M6 6l12 12" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
             </svg>
           </button>

@@ -279,13 +279,237 @@ export function applyLight(light: LightModel) {
   set("--sky-hour", String(light.time));
   set("--sky-clock", clockText(light.time));
 
-  // Diurnal surface theme derived strictly from solar hour t ∈ [0, 24):
-  // Daylight window (06:25 – 18:05) activates frosted alabaster light theme;
-  // Dusk through pre-dawn activates obsidian dark theme.
-  const nextSkyTheme = light.time >= 6.416 && light.time <= 18.083 ? "light" : "dark";
+  const ui = computeUiPalette(light.time);
+
+  set("--ui-day-mix", ui.dayMix.toFixed(4));
+  set("--ui-nav-bg", ui.navBg);
+  set("--ui-nav-bg-scrolled", ui.navBgScrolled);
+  set("--ui-nav-border", ui.navBorder);
+  set("--ui-nav-inset", ui.navInset);
+
+  set("--ui-card-bg", ui.cardBg);
+  set("--ui-card-border", ui.cardBorder);
+  set("--ui-card-inset", ui.cardInset);
+  set("--ui-surface-canvas", ui.surfaceCanvas);
+
+  set("--ui-dial-top", ui.dialTop);
+  set("--ui-dial-bot", ui.dialBot);
+  set("--ui-dial-rim-top", ui.dialRimTop);
+  set("--ui-dial-rim-mid", ui.dialRimMid);
+
+  set("--ui-ink", ui.ink);
+  set("--ui-ink-82", ui.ink82);
+  set("--ui-ink-66", ui.ink66);
+  set("--ui-ink-52", ui.ink52);
+  set("--ui-hairline", ui.hairline);
+
+  set("--ui-pill-bg", ui.pillBg);
+  set("--ui-pill-bg-active", ui.pillBgActive);
+  set("--ui-pill-border", ui.pillBorder);
+
+  set("--ui-cta-bg", ui.ctaBg);
+  set("--ui-cta-ink", ui.ctaInk);
+  set("--ui-ghost-bg", ui.ghostBg);
+  set("--ui-ghost-border", ui.ghostBorder);
+  set("--ui-hint-bg", ui.hintBg);
+
+  set("--ui-veil-core", ui.veilCore);
+  set("--ui-veil-mid", ui.veilMid);
+  set("--ui-hero-shadow", ui.heroShadow);
+  set("--ui-flora-stem", ui.floraStem);
+
+  const nextSkyTheme = ui.isLight ? "light" : "dark";
   if (document.documentElement.dataset.skyTheme !== nextSkyTheme) {
     document.documentElement.dataset.skyTheme = nextSkyTheme;
   }
+}
+
+export interface UiAtmosphericPalette {
+  isLight: boolean;
+  dayMix: number;
+  cardRgb: [number, number, number];
+  inkRgb: [number, number, number];
+  ctaBgRgb: [number, number, number];
+  ctaInkRgb: [number, number, number];
+  navBg: string;
+  navBgScrolled: string;
+  navBorder: string;
+  navInset: string;
+  cardBg: string;
+  cardBorder: string;
+  cardInset: string;
+  surfaceCanvas: string;
+  dialTop: string;
+  dialBot: string;
+  dialRimTop: string;
+  dialRimMid: string;
+  ink: string;
+  ink82: string;
+  ink66: string;
+  ink52: string;
+  hairline: string;
+  pillBg: string;
+  pillBgActive: string;
+  pillBorder: string;
+  ctaBg: string;
+  ctaInk: string;
+  ghostBg: string;
+  ghostBorder: string;
+  hintBg: string;
+  veilCore: string;
+  veilMid: string;
+  heroShadow: string;
+  floraStem: string;
+}
+
+function mixRgb(
+  a: [number, number, number],
+  b: [number, number, number],
+  k: number,
+): [number, number, number] {
+  return [
+    Math.round(lerp(a[0], b[0], k)),
+    Math.round(lerp(a[1], b[1], k)),
+    Math.round(lerp(a[2], b[2], k)),
+  ];
+}
+
+function rgbaOf(rgb: [number, number, number], a: number): string {
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a.toFixed(3)})`;
+}
+
+/**
+ * Dual-band high-contrast atmospheric UI palette:
+ * - Daylight band (06:10 → 18:05): smoothly warms from crisp alabaster at noon
+ *   into sunlit golden ivory near dawn/sunset while keeping deep espresso/obsidian ink.
+ * - Night/Twilight band (18:05 → 06:10): smoothly shifts from velvet twilight
+ *   plum-indigo at dusk/pre-dawn into deep midnight obsidian with luminous cream ink.
+ * Crossing the twilight seam triggers a silky 820ms CSS transition (via @property
+ * & explicit color/background transitions) so surfaces melt seamlessly without ever
+ * colliding in unreadable mid-gray.
+ */
+export function computeUiPalette(hour: number): UiAtmosphericPalette {
+  const h = ((hour % 24) + 24) % 24;
+  const dayMix = computeSurfaceDaylight(h);
+  const isLight = h >= 6.1 && h <= 18.08;
+
+  if (isLight) {
+    // Warmth peaks at sunrise (06:10–07:45) and golden hour (16:15–18:05)
+    const morningWarm = 1 - smoothstep(6.2, 8.2, h);
+    const eveningWarm = smoothstep(15.8, 17.9, h);
+    const warm = clamp(Math.max(morningWarm, eveningWarm), 0, 1);
+
+    const cardRgb = mixRgb([252, 251, 248], [253, 243, 229], warm);
+    const dialTopRgb = mixRgb([253, 252, 249], [254, 247, 237], warm);
+    const dialBotRgb = mixRgb([245, 243, 238], [249, 232, 210], warm);
+    const inkRgb = mixRgb([14, 22, 38], [30, 22, 18], warm);
+    const ctaBgRgb = mixRgb([15, 23, 42], [32, 22, 18], warm);
+    const ctaInkRgb = mixRgb([251, 250, 246], [255, 248, 238], warm);
+    const veilRgb = mixRgb([252, 250, 246], [254, 239, 218], warm);
+    const stemRgb = mixRgb([31, 122, 74], [46, 114, 62], warm);
+
+    return {
+      isLight: true,
+      dayMix,
+      cardRgb,
+      inkRgb,
+      ctaBgRgb,
+      ctaInkRgb,
+      navBg: rgbaOf(cardRgb, 0.84),
+      navBgScrolled: rgbaOf(cardRgb, 0.94),
+      navBorder: rgbaOf(inkRgb, 0.1),
+      navInset: "rgba(255, 255, 255, 0.88)",
+      cardBg: rgbaOf(cardRgb, 0.97),
+      cardBorder: rgbaOf(inkRgb, 0.09),
+      cardInset: "rgba(255, 255, 255, 0.96)",
+      surfaceCanvas: rgbaOf(cardRgb, 0.985),
+      dialTop: rgbaOf(dialTopRgb, 1),
+      dialBot: rgbaOf(dialBotRgb, 1),
+      dialRimTop: "rgba(255, 255, 255, 0.95)",
+      dialRimMid: rgbaOf(inkRgb, 0.085),
+      ink: rgbaOf(inkRgb, 1),
+      ink82: rgbaOf(inkRgb, 0.8),
+      ink66: rgbaOf(inkRgb, 0.64),
+      ink52: rgbaOf(inkRgb, 0.5),
+      hairline: rgbaOf(inkRgb, 0.095),
+      pillBg: rgbaOf(inkRgb, 0.05),
+      pillBgActive: rgbaOf(inkRgb, 0.095),
+      pillBorder: rgbaOf(inkRgb, 0.12),
+      ctaBg: rgbaOf(ctaBgRgb, 1),
+      ctaInk: rgbaOf(ctaInkRgb, 1),
+      ghostBg: rgbaOf(cardRgb, 0.64),
+      ghostBorder: rgbaOf(inkRgb, 0.18),
+      hintBg: rgbaOf(cardRgb, 0.8),
+      veilCore: rgbaOf(veilRgb, 0.44),
+      veilMid: rgbaOf(veilRgb, 0.15),
+      heroShadow: "rgba(255, 255, 255, 0.46)",
+      floraStem: rgbaOf(stemRgb, 1),
+    };
+  }
+
+  // Night & twilight band: velvet plum-indigo near dusk (18:08–20:00) and pre-dawn (04:45–06:10)
+  const duskGlow = h >= 18.0 ? 1 - smoothstep(18.1, 20.4, h) : 0;
+  const preDawnGlow = h <= 6.2 ? smoothstep(4.5, 6.1, h) : 0;
+  const twi = clamp(Math.max(duskGlow, preDawnGlow), 0, 1);
+
+  const cardRgb = mixRgb([11, 16, 29], [31, 26, 52], twi);
+  const dialTopRgb = mixRgb([17, 23, 39], [38, 31, 61], twi);
+  const dialBotRgb = mixRgb([10, 14, 26], [26, 21, 44], twi);
+  const inkRgb = mixRgb([246, 244, 238], [253, 245, 236], twi);
+  const ctaBgRgb = mixRgb([246, 244, 238], [253, 242, 228], twi);
+  const ctaInkRgb = mixRgb([11, 16, 29], [28, 22, 46], twi);
+  const veilRgb = mixRgb([6, 10, 22], [22, 16, 40], twi);
+  const stemRgb = mixRgb([74, 222, 128], [110, 231, 162], twi);
+
+  return {
+    isLight: false,
+    dayMix,
+    cardRgb,
+    inkRgb,
+    ctaBgRgb,
+    ctaInkRgb,
+    navBg: rgbaOf(cardRgb, 0.8),
+    navBgScrolled: rgbaOf(cardRgb, 0.92),
+    navBorder: rgbaOf(inkRgb, 0.14),
+    navInset: "rgba(255, 255, 255, 0.09)",
+    cardBg: rgbaOf(cardRgb, 0.96),
+    cardBorder: rgbaOf(inkRgb, 0.12),
+    cardInset: "rgba(255, 255, 255, 0.085)",
+    surfaceCanvas: rgbaOf(cardRgb, 0.98),
+    dialTop: rgbaOf(dialTopRgb, 1),
+    dialBot: rgbaOf(dialBotRgb, 1),
+    dialRimTop: "rgba(255, 255, 255, 0.24)",
+    dialRimMid: "rgba(255, 255, 255, 0.06)",
+    ink: rgbaOf(inkRgb, 1),
+    ink82: rgbaOf(inkRgb, 0.84),
+    ink66: rgbaOf(inkRgb, 0.68),
+    ink52: rgbaOf(inkRgb, 0.54),
+    hairline: rgbaOf(inkRgb, 0.12),
+    pillBg: "rgba(255, 255, 255, 0.08)",
+    pillBgActive: "rgba(255, 255, 255, 0.15)",
+    pillBorder: "rgba(255, 255, 255, 0.16)",
+    ctaBg: rgbaOf(ctaBgRgb, 1),
+    ctaInk: rgbaOf(ctaInkRgb, 1),
+    ghostBg: rgbaOf(cardRgb, 0.56),
+    ghostBorder: rgbaOf(inkRgb, 0.24),
+    hintBg: rgbaOf(cardRgb, 0.76),
+    veilCore: rgbaOf(veilRgb, 0.54),
+    veilMid: rgbaOf(veilRgb, 0.18),
+    heroShadow: "rgba(2, 6, 23, 0.68)",
+    floraStem: rgbaOf(stemRgb, 1),
+  };
+}
+
+/**
+ * Continuous diurnal UI surface luminance s ∈ [0, 1].
+ * Smoothly ramps up across sunrise (05:15 → 07:00) and down across
+ * golden hour & dusk (17:15 → 19:15) so surfaces never snap abruptly.
+ */
+export function computeSurfaceDaylight(hour: number): number {
+  const h = ((hour % 24) + 24) % 24;
+  const dawn = smoothstep(5.25, 7.0, h);
+  const dusk = 1 - smoothstep(17.25, 19.25, h);
+  return clamp(dawn * dusk, 0, 1);
 }
 
 function clockText(t: number) {

@@ -26,22 +26,17 @@ const CRAFT_PILLARS: readonly { index: string; title: string; body: string }[] =
 
 export function HomeBeats() {
   return (
-    <section id="about" className="manifesto-section" aria-label="A working belief">
+    <section id="about" className="manifesto-section" aria-label="Approach">
       <span id="craft" aria-hidden="true" className="absolute -top-24" />
       <span id="process" aria-hidden="true" className="absolute -top-24" />
 
       <div className="shell">
-        <div className="manifesto-panel" data-reveal>
+        <div className="manifesto-editorial">
           <div className="manifesto-top">
-            <p className="manifesto-kicker">A working belief</p>
+            <p className="manifesto-kicker">Approach</p>
             <h2 className="manifesto-quote">
               Good interface design <em>disappears</em> when you need it most.
             </h2>
-            <p className="manifesto-lede">
-              Design and engineering aren’t two handoff steps here — they are one loop. Every
-              interface begins at the moment of human judgment, then gets stress-tested directly
-              in running code.
-            </p>
           </div>
 
           <div className="manifesto-pillars">

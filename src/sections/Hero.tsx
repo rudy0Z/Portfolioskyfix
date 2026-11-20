@@ -118,18 +118,16 @@ export function Hero() {
         <div className="shell hero-editorial-shell">
           <div className="hero-editorial">
             <p className="hero-eyebrow">
-              Greater Noida, India · Product Design &amp; Code
+              Greater Noida · Product Design &amp; Code
             </p>
 
             <h1 className="hero-title">
-              Hi, I’m Rudraksh —<br />
-              a product designer<br />
-              who builds <em>in code.</em>
+              Rudraksh Singh —<br />
+              product design built <em>in code.</em>
             </h1>
 
             <p className="hero-lede">
-              Designing decision-critical AI interfaces and prototyping the hardest edge cases
-              directly in React &amp; TypeScript.
+              Decision-critical AI interfaces, prototyped directly in React &amp; TypeScript.
             </p>
 
             <div className="hero-actions">
@@ -147,7 +145,7 @@ export function Hero() {
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hero-btn-secondary"
+                className="hero-link-secondary"
               >
                 Resume PDF <span aria-hidden="true">↗</span>
               </a>
@@ -157,12 +155,6 @@ export function Hero() {
 
         {/* Rising layered horizon cloud-mist curtain (sweeps up on scroll) */}
         {!EXIT_LITE && <HeroMist />}
-
-        {/* Quiet scroll cue */}
-        <div className="hero-hint" aria-hidden="true">
-          <span className="hero-hint-line" />
-          <span className="hero-hint-text">Scroll to selected work</span>
-        </div>
       </div>
     </section>
   );

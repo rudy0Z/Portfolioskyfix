@@ -191,31 +191,6 @@ function addCurl(P: Pt[], sign: number, rad: number): Pt[] {
   return P;
 }
 
-function makeWeave(r: () => number, startLayer: 0 | 1): WeaveSeg[] {
-  const cuts: number[] = [];
-  const nc = 1 + Math.floor(r() * 2.5);
-  for (let i = 0; i < nc; i++) cuts.push(0.18 + r() * 0.68);
-  cuts.sort((a, b) => a - b);
-  const segs: WeaveSeg[] = [];
-  let u0 = 0;
-  let layer: 0 | 1 = startLayer;
-  for (const c of cuts) {
-    if (c <= u0 + 0.04) continue;
-    segs.push({ u0, u1: c, layer });
-    u0 = c;
-    layer = layer === 0 ? 1 : 0;
-  }
-  segs.push({ u0, u1: 1, layer });
-  return segs;
-}
-
-function layerAt(segs: WeaveSeg[], u: number): 0 | 1 {
-  for (const s of segs) {
-    if (u >= s.u0 && u <= s.u1) return s.layer;
-  }
-  return segs[segs.length - 1].layer;
-}
-
 function samplePts(P: Pt[], u: number): [Pt, number] {
   const n = P.length;
   const f = clamp(u, 0, 1) * (n - 1);
@@ -285,7 +260,7 @@ export function buildWordmarkGarden(
   slots.forEach((slot, idx) => {
     const baseDelay = slot.delayMs ?? idx * 75;
     const h = Math.max(40, slot.h || slot.baseY - slot.topY);
-    const scale = clamp(h / 115, 0.52, 1.48);
+    const scale = clamp(h / 96, 0.56, 1.65);
 
     const addVine = (cfg: {
       base: Pt;
@@ -302,17 +277,27 @@ export function buildWordmarkGarden(
         cfg.base,
         cfg.dir,
         cfg.len,
-        0.3 + r() * 0.42,
-        1.0 + r() * 1.4,
+        0.34 + r() * 0.44,
+        1.05 + r() * 1.35,
         r() * Math.PI * 2,
-        (r() - 0.5) * 1.1,
-        32,
+        (r() - 0.5) * 1.15,
+        36,
       );
       if (cfg.isCurl) {
-        pts = addCurl(pts, r() < 0.5 ? -1 : 1, (9 + r() * 11) * scale);
+        pts = addCurl(pts, r() < 0.5 ? -1 : 1, (11 + r() * 13) * scale);
       }
-      const segs = makeWeave(r, (idx + stems.length) % 2 === 0 ? 0 : 1);
-      const dur = Math.max(360, cfg.len * (density === "loader" ? 4.8 : 6.2));
+      // Keep vines primarily behind the typography (layer 0) so `rudraksh` stays crisp and legible,
+      // letting only the upper crown or bookend tendril tips weave softly in front.
+      const segs: WeaveSeg[] = cfg.isCurl
+        ? [
+            { u0: 0, u1: 0.55, layer: 0 },
+            { u0: 0.55, u1: 1, layer: 1 },
+          ]
+        : [
+            { u0: 0, u1: 0.78, layer: 0 },
+            { u0: 0.78, u1: 1, layer: (idx % 3 === 0 ? 1 : 0) as 0 | 1 },
+          ];
+      const dur = Math.max(380, cfg.len * (density === "loader" ? 4.4 : 5.8));
       const stemIdx = stems.length;
 
       stems.push({
@@ -320,27 +305,27 @@ export function buildWordmarkGarden(
         segs,
         d0: cfg.d0,
         dur,
-        w: (1.55 + r() * 0.65) * scale,
+        w: (1.45 + r() * 0.55) * scale,
         phase: r() * Math.PI * 2,
         anchor: [cfg.base[0], cfg.base[1]],
         cycleOffset: r() * Math.PI * 2,
       });
 
-      // 2-3 tapered leaves per vine
-      const leafCount = density === "footer" ? 2 + Math.floor(r() * 2) : 1 + Math.floor(r() * 2);
+      // 2-3 graceful slender leaves tucked behind letterforms so counters stay open
+      const leafCount = cfg.isCurl ? 2 : density === "footer" ? 2 + (idx % 2) : 2;
       let side = r() < 0.5 ? -1 : 1;
       for (let li = 0; li < leafCount; li++) {
-        const u = 0.24 + (li / Math.max(1, leafCount)) * 0.52 + r() * 0.08;
+        const u = 0.24 + (li / Math.max(1, leafCount)) * 0.52 + r() * 0.05;
         const [, ang] = samplePts(pts, u);
         side = -side;
         leaves.push({
           stemIdx,
-          u: clamp(u, 0.18, 0.86),
-          baseA: ang + side * (0.58 + r() * 0.44),
-          L: (14 + r() * 10) * scale,
-          bend: (r() - 0.5) * 1.1,
-          layer: layerAt(segs, u),
-          d0: cfg.d0 + dur * u * 0.9,
+          u: clamp(u, 0.2, 0.84),
+          baseA: ang + side * (0.56 + r() * 0.42),
+          L: (13.5 + r() * 8.5) * scale,
+          bend: (r() - 0.5) * 1.05,
+          layer: 0,
+          d0: cfg.d0 + dur * u * 0.88,
           phase: r() * Math.PI * 2,
         });
       }
@@ -351,10 +336,10 @@ export function buildWordmarkGarden(
           stemIdx,
           u: 0.98,
           species: cfg.species,
-          R: (12.5 + r() * 6.5) * scale * (cfg.sizeMul ?? 1),
-          baseRot: tipAng + Math.PI / 2 + (r() - 0.5) * 0.35,
-          layer: layerAt(segs, 0.98),
-          d0: cfg.d0 + dur * 0.78,
+          R: (19 + r() * 9.5) * scale * (cfg.sizeMul ?? 1),
+          baseRot: tipAng + Math.PI / 2 + (r() - 0.5) * 0.28,
+          layer: 0,
+          d0: cfg.d0 + dur * 0.76,
           phase: r() * Math.PI * 2,
           seed: Math.floor(r() * 1e9),
           isBud: Boolean(cfg.isBud),
@@ -363,44 +348,53 @@ export function buildWordmarkGarden(
       }
     };
 
-    // Primary upward vine weaving through the glyph
+    // Deterministic showcase order across r-u-d-r-a-k-s-h so all 4 Ghibli meadow species shine
+    const primaryOrder: readonly MeadowSpecies[] = [
+      "cosmos",
+      "lupine",
+      "poppy",
+      "daisy",
+      "cosmos",
+      "poppy",
+      "daisy",
+      "lupine",
+    ];
     const side = idx % 2 === 0 ? -1 : 1;
-    const primarySpecies = SPECIES[speciesCursor++ % SPECIES.length];
+    const primarySpecies = primaryOrder[idx % primaryOrder.length];
+    const isHeroCrown = idx === 1 || idx === 4 || idx === 5;
     addVine({
-      base: [slot.cx + side * slot.w * 0.2, slot.baseY + 2],
-      dir: -Math.PI / 2 + (r() - 0.5) * 0.48,
-      len: h * (0.86 + r() * 0.44),
-      d0: baseDelay + 40 + r() * 80,
+      base: [slot.cx + side * slot.w * 0.22, slot.baseY + 2],
+      dir: -Math.PI / 2 + (r() - 0.5) * 0.38,
+      len: h * (isHeroCrown ? 1.18 + r() * 0.2 : 0.96 + r() * 0.24),
+      d0: baseDelay + 35 + r() * 75,
       species: primarySpecies,
       hasBloom: true,
-      sizeMul: idx === 0 || idx === slots.length - 1 ? 1.1 : 1.0,
+      sizeMul: isHeroCrown ? 1.2 : 0.94,
     });
 
-    // Secondary companion vine or curling tendril
-    if (r() < 0.78 || density === "footer") {
-      const secondaryIsCurl = r() < 0.32;
+    // Selective delicate curling tendrils on alternating glyphs (clean Akshat breathing room)
+    if (idx === 2 || idx === 5) {
       const secondarySpecies = SPECIES[speciesCursor++ % SPECIES.length];
       addVine({
-        base: [slot.cx - side * slot.w * 0.24, slot.baseY - h * (0.05 + r() * 0.18)],
-        dir: -Math.PI / 2 + (r() - 0.5) * 0.95,
-        len: h * (0.52 + r() * 0.36),
-        d0: baseDelay + 140 + r() * 130,
+        base: [slot.cx - side * slot.w * 0.24, slot.baseY - h * 0.1],
+        dir: -Math.PI / 2 + (r() - 0.5) * 0.7,
+        len: h * (0.62 + r() * 0.22),
+        d0: baseDelay + 140 + r() * 90,
         species: secondarySpecies,
-        hasBloom: !secondaryIsCurl,
-        isBud: !secondaryIsCurl && r() < 0.28,
-        isCurl: secondaryIsCurl,
-        sizeMul: 0.84,
+        hasBloom: false,
+        isCurl: true,
+        sizeMul: 0.76,
       });
     }
 
-    // Bookend outward tendrils on first and last glyph (signature serif flourish)
+    // Sweeping outward calligraphic bookend tendrils on 'r' and 'h'
     if (idx === 0 || idx === slots.length - 1) {
       const outward = idx === 0 ? -1 : 1;
       addVine({
-        base: [slot.cx + outward * slot.w * 0.4, slot.baseY - h * 0.25],
-        dir: outward < 0 ? Math.PI + 0.18 : -0.18,
-        len: h * (0.58 + r() * 0.22),
-        d0: baseDelay + 220,
+        base: [slot.cx + outward * slot.w * 0.36, slot.baseY - h * 0.22],
+        dir: outward < 0 ? Math.PI + 0.22 : -0.22,
+        len: h * (0.68 + r() * 0.24),
+        d0: baseDelay + 190,
         species: SPECIES[speciesCursor++ % SPECIES.length],
         hasBloom: false,
         isCurl: true,
@@ -549,116 +543,144 @@ function paintMeadowBloom(
   }
 
   if (species === "lupine") {
-    // Tiered conical violet lupine spire matching our meadow
-    const tiers = 5;
+    // Sculpted Ghibli periwinkle-lavender lupine spire with overlapping cel-shaded florets
+    const tiers = 6;
+    g.strokeStyle = isNight ? "rgba(74, 178, 134, 0.8)" : "rgba(28, 108, 56, 0.85)";
+    g.lineWidth = Math.max(1.2, R * 0.08);
+    g.beginPath();
+    g.moveTo(0, R * 0.65);
+    g.lineTo(0, -R * 1.45);
+    g.stroke();
+
     for (let t = 0; t < tiers; t++) {
       const u = t / (tiers - 1);
-      const fy = R * 0.58 - u * R * 1.85;
-      const spread = R * (0.46 * (1 - u * 0.65) + 0.08);
-      const cA = isNight ? "#a5b4fc" : "#8b73f2";
-      const cB = isNight ? "#818cf8" : "#6c52d9";
-      for (const s of [-1, 0, 1]) {
-        if (u > 0.72 && s !== 0) continue;
-        g.fillStyle = s === 0 ? cA : cB;
+      const fy = R * 0.52 - u * R * 1.88;
+      const spread = R * (0.48 * (1 - u * 0.68) + 0.06);
+      const cHi = isNight ? "#c7d2fe" : "#cfc9fb";
+      const cMid = isNight ? "#9ca8f8" : "#9c93e8";
+      const cSh = isNight ? "#6d74d6" : "#6b63be";
+      for (const s of [-1, 1, 0]) {
+        if (u > 0.76 && s !== 0) continue;
+        const fx = s * spread * 0.64;
+        const rx = R * (0.29 - u * 0.085);
+        const ry = R * (0.21 - u * 0.05);
+        const fg = g.createRadialGradient(fx - rx * 0.25, fy - ry * 0.35, 0, fx, fy, rx * 1.35);
+        fg.addColorStop(0, cHi);
+        fg.addColorStop(0.58, s === 0 ? cMid : cSh);
+        fg.addColorStop(1, cSh);
+        g.fillStyle = fg;
         g.beginPath();
-        g.ellipse(
-          s * spread * 0.68,
-          fy,
-          R * (0.28 - u * 0.08),
-          R * (0.21 - u * 0.05),
-          s * 0.28,
-          0,
-          Math.PI * 2,
-        );
+        g.ellipse(fx, fy, rx, ry, s * 0.24, 0, Math.PI * 2);
         g.fill();
+        g.strokeStyle = isNight ? "rgba(224, 231, 255, 0.28)" : "rgba(76, 68, 158, 0.32)";
+        g.lineWidth = Math.max(0.65, R * 0.032);
+        g.stroke();
       }
     }
-    // Delicate pale lavender crown tip
-    g.fillStyle = isNight ? "#e0e7ff" : "#ddd6fe";
+    g.fillStyle = isNight ? "#e0e7ff" : "#e6e3ff";
     g.beginPath();
-    g.arc(0, -R * 1.38, R * 0.17, 0, Math.PI * 2);
+    g.ellipse(0, -R * 1.46, R * 0.14, R * 0.2, 0, 0, Math.PI * 2);
     g.fill();
   } else if (species === "cosmos") {
-    // 8-petal painterly rose-pink cosmos with notched feel and warm golden disc
+    // 8-petal painterly blush-rose Ghibli cosmos with notched petal tips & sunny disc
     const petals = 8;
     for (let i = 0; i < petals; i++) {
       const a = (i / petals) * Math.PI * 2;
       g.save();
       g.rotate(a);
-      const pg = g.createLinearGradient(0, -R * 0.1, 0, -R * 1.05);
+      const pg = g.createLinearGradient(0, -R * 0.08, 0, -R * 1.06);
       if (isNight) {
-        pg.addColorStop(0, "#db2777");
-        pg.addColorStop(0.55, "#f472b6");
-        pg.addColorStop(1, "#fbcfe8");
+        pg.addColorStop(0, "#db4c92");
+        pg.addColorStop(0.55, "#f79ec8");
+        pg.addColorStop(1, "#fde7f3");
       } else {
-        pg.addColorStop(0, "#e11d74");
-        pg.addColorStop(0.5, "#f472b6");
-        pg.addColorStop(1, "#fce7f3");
+        pg.addColorStop(0, "#e56aa6");
+        pg.addColorStop(0.52, "#f9a8cf");
+        pg.addColorStop(1, "#fff0f7");
       }
       g.fillStyle = pg;
       g.beginPath();
-      g.ellipse(0, -R * 0.56, R * 0.25, R * 0.46, 0, 0, Math.PI * 2);
+      g.moveTo(0, -R * 0.12);
+      g.bezierCurveTo(-R * 0.28, -R * 0.42, -R * 0.32, -R * 0.88, -R * 0.08, -R * 1.04);
+      g.lineTo(0, -R * 0.94);
+      g.lineTo(R * 0.08, -R * 1.04);
+      g.bezierCurveTo(R * 0.32, -R * 0.88, R * 0.28, -R * 0.42, 0, -R * 0.12);
+      g.closePath();
       g.fill();
+      g.strokeStyle = isNight ? "rgba(255, 224, 240, 0.26)" : "rgba(190, 58, 122, 0.24)";
+      g.lineWidth = Math.max(0.65, R * 0.028);
+      g.stroke();
       g.restore();
     }
-    // Golden pollen center + warm ring
     g.fillStyle = "#d97706";
     g.beginPath();
-    g.arc(0, 0, R * 0.27, 0, Math.PI * 2);
+    g.arc(0, 0, R * 0.26, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "#fde047";
+    g.fillStyle = "#fef08a";
     g.beginPath();
-    g.arc(-R * 0.04, -R * 0.04, R * 0.18, 0, Math.PI * 2);
+    g.arc(-R * 0.04, -R * 0.04, R * 0.17, 0, Math.PI * 2);
     g.fill();
   } else if (species === "poppy") {
-    // 5-petal luminous golden-orange California poppy cup
+    // 5-petal sunlit golden-marigold Ghibli poppy cup with dark-sienna heart
     const petals = 5;
     for (let i = 0; i < petals; i++) {
       const a = (i / petals) * Math.PI * 2 - Math.PI / 2;
       g.save();
       g.rotate(a);
-      const pg = g.createLinearGradient(0, 0, 0, -R);
-      pg.addColorStop(0, "#c2410c");
-      pg.addColorStop(0.45, "#f97316");
-      pg.addColorStop(1, "#fcd34d");
+      const pg = g.createLinearGradient(0, 0, 0, -R * 1.02);
+      pg.addColorStop(0, "#d97706");
+      pg.addColorStop(0.48, "#f59e0b");
+      pg.addColorStop(1, "#fde047");
       g.fillStyle = pg;
       g.beginPath();
-      g.ellipse(0, -R * 0.46, R * 0.4, R * 0.46, 0, 0, Math.PI * 2);
+      g.moveTo(0, 0);
+      g.bezierCurveTo(-R * 0.48, -R * 0.22, -R * 0.52, -R * 0.84, 0, -R * 0.96);
+      g.bezierCurveTo(R * 0.52, -R * 0.84, R * 0.48, -R * 0.22, 0, 0);
+      g.closePath();
       g.fill();
+      g.strokeStyle = "rgba(161, 68, 8, 0.28)";
+      g.lineWidth = Math.max(0.65, R * 0.028);
+      g.stroke();
       g.restore();
     }
-    g.fillStyle = "#451a03";
+    g.fillStyle = "#5c2808";
     g.beginPath();
-    g.arc(0, 0, R * 0.18, 0, Math.PI * 2);
+    g.arc(0, 0, R * 0.2, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "#f59e0b";
+    g.fillStyle = "#fde68a";
     g.beginPath();
-    g.arc(0, 0, R * 0.09, 0, Math.PI * 2);
+    g.arc(-R * 0.03, -R * 0.03, R * 0.08, 0, Math.PI * 2);
     g.fill();
   } else {
-    // 12-petal crisp white meadow daisy with delicate shadow rim & honey disc
-    const petals = 12;
+    // 14-petal razor-crisp pure white meadow daisy with raised golden-amber button
+    const petals = 14;
     for (let i = 0; i < petals; i++) {
       const a = (i / petals) * Math.PI * 2;
       g.save();
       g.rotate(a);
-      const pg = g.createLinearGradient(0, -R * 0.15, 0, -R * 1.05);
-      pg.addColorStop(0, isNight ? "#cbd5e1" : "#e2e8f0");
-      pg.addColorStop(0.4, "#ffffff");
+      const pg = g.createLinearGradient(0, -R * 0.14, 0, -R * 1.06);
+      pg.addColorStop(0, isNight ? "#cbd5e1" : "#dbe3ee");
+      pg.addColorStop(0.35, "#ffffff");
       pg.addColorStop(1, "#ffffff");
       g.fillStyle = pg;
       g.beginPath();
-      g.ellipse(0, -R * 0.6, R * 0.135, R * 0.44, 0, 0, Math.PI * 2);
+      g.moveTo(0, -R * 0.14);
+      g.quadraticCurveTo(-R * 0.15, -R * 0.62, 0, -R * 1.06);
+      g.quadraticCurveTo(R * 0.15, -R * 0.62, 0, -R * 0.14);
+      g.closePath();
       g.fill();
+      g.strokeStyle = isNight ? "rgba(148, 163, 184, 0.22)" : "rgba(100, 116, 139, 0.24)";
+      g.lineWidth = Math.max(0.55, R * 0.024);
+      g.stroke();
       g.restore();
     }
     g.fillStyle = "#d97706";
     g.beginPath();
-    g.arc(0, 0, R * 0.27, 0, Math.PI * 2);
+    g.arc(0, 0, R * 0.28, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "#fbbf24";
+    g.fillStyle = "#facc15";
     g.beginPath();
-    g.arc(-R * 0.04, -R * 0.04, R * 0.2, 0, Math.PI * 2);
+    g.arc(-R * 0.04, -R * 0.05, R * 0.2, 0, Math.PI * 2);
     g.fill();
   }
 

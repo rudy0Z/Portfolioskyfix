@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getLight } from "./lighting";
+import { computeSurfaceDaylight, computeUiPalette, getLight } from "./lighting";
 import { computeMeadowGlow, computeMeadowGoldenRim } from "./diurnalBloom";
 import {
+  PIN_DIAL_GEOM,
   hourToPinAngle,
   pinAngleToHour,
   pinDialAtmosphere,
@@ -14,6 +15,20 @@ import {
   pickRandomWordmarkPreset,
   type GlyphSlot,
 } from "../components/botanical/BotanicalWordmarkEngine";
+
+function relLuminance([r, g, b]: [number, number, number]): number {
+  const lin = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(a: [number, number, number], b: [number, number, number]): number {
+  const la = relLuminance(a);
+  const lb = relLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
 
 test("meadow bloom is strictly 0 during bright morning, midday, and afternoon", () => {
   for (const hour of [8, 10, 12, 14.5, 16]) {
@@ -46,7 +61,9 @@ test("golden rim lighting stays zero at midday and activates during golden hour"
   assert.ok(computeMeadowGoldenRim(getLight(18.25)) > 0);
 });
 
-test("PinUI solar horizon dial angle-to-hour round trip holds across 24h", () => {
+test("180-degree half-dome solar horizon dial angle-to-hour round trip holds across 24h", () => {
+  assert.equal(PIN_DIAL_GEOM.angleStart, -90);
+  assert.equal(PIN_DIAL_GEOM.angleEnd, 90);
   for (const hr of [0.5, 6.0, 12.0, 16.5, 22.5]) {
     const ang = hourToPinAngle(hr);
     const back = pinAngleToHour(ang);
@@ -57,7 +74,26 @@ test("PinUI solar horizon dial angle-to-hour round trip holds across 24h", () =>
   }
 });
 
-test("PinUI dial atmosphere adapts light/dark polarity cleanly across day and night", () => {
+test("atmospheric UI palette preserves WCAG AAA contrast (>= 10:1) at every quarter-hour across 24h", () => {
+  assert.equal(computeSurfaceDaylight(12.0), 1);
+  assert.equal(computeSurfaceDaylight(23.0), 0);
+  for (let q = 0; q < 96; q++) {
+    const hr = q * 0.25;
+    const ui = computeUiPalette(hr);
+    const bodyContrast = contrastRatio(ui.cardRgb, ui.inkRgb);
+    const ctaContrast = contrastRatio(ui.ctaBgRgb, ui.ctaInkRgb);
+    assert.ok(
+      bodyContrast >= 10,
+      `Expected card/ink contrast >= 10:1 at ${hr}h, got ${bodyContrast.toFixed(2)}:1`,
+    );
+    assert.ok(
+      ctaContrast >= 10,
+      `Expected CTA bg/ink contrast >= 10:1 at ${hr}h, got ${ctaContrast.toFixed(2)}:1`,
+    );
+  }
+});
+
+test("half-dome dial atmosphere adapts light/dark polarity cleanly across day and night", () => {
   assert.equal(pinDialAtmosphere(12.0).theme, "light");
   assert.equal(pinDialAtmosphere(16.5).theme, "light");
   assert.equal(pinDialAtmosphere(23.0).theme, "dark");

@@ -31,9 +31,11 @@ const HORIZON_Y = 56;
  *  eye catches between two palettes, so the field moves exactly when the sky
  *  visibly moves instead of on a fixed 10-sky-minute cadence. */
 const RELIGHT_EPSILON = 0.015;
-/** …and at most every 450 ms, so a dial scrub steps at the bake budget rather
-    than per frame. Slow drift fires the moment the epsilon is crossed. */
-const RELIGHT_GAP_MS = 450;
+/** Trailing settle delay after rapid dial scrub pauses, so dragging across
+ *  24 hours stays 60fps without thrashing GPU canvas allocations. */
+const RELIGHT_DEBOUNCE_MS = 240;
+/** Max interval during a slow continuous glide before forcing a fresh bake. */
+const RELIGHT_MAX_WAIT_MS = 900;
 
 /** Compact signature of everything the field bake consumes from the light
  *  model: the raw OKLCH palette stops (l, c, h/360) plus the daylight mix
@@ -62,27 +64,30 @@ function maxChannelDelta(a: Float64Array, b: Float64Array): number {
 function useRelight(t: number): number {
   const [applied, setApplied] = useState(t);
   const appliedSig = useRef<Float64Array | null>(null);
-  const lastRef = useRef(0);
+  const lastBakeRef = useRef(0);
   const tRef = useRef(t);
   tRef.current = t;
 
   useEffect(() => {
     if (appliedSig.current === null) {
-      // First bake lands wherever the clock starts.
       appliedSig.current = lightSignature(t);
-      lastRef.current = performance.now();
+      lastBakeRef.current = performance.now();
       setApplied(t);
       return;
     }
     const delta = maxChannelDelta(lightSignature(t), appliedSig.current);
-    if (delta <= RELIGHT_EPSILON) return; // the sky hasn't visibly moved yet
-    const wait = Math.max(0, RELIGHT_GAP_MS - (performance.now() - lastRef.current));
+    if (delta <= RELIGHT_EPSILON) return;
+
+    const sinceBake = performance.now() - lastBakeRef.current;
+    const wait =
+      sinceBake >= RELIGHT_MAX_WAIT_MS
+        ? 40
+        : Math.min(RELIGHT_DEBOUNCE_MS, Math.max(80, RELIGHT_MAX_WAIT_MS - sinceBake));
+
     const id = window.setTimeout(() => {
-      lastRef.current = performance.now();
+      lastBakeRef.current = performance.now();
       appliedSig.current = lightSignature(tRef.current);
       setApplied(tRef.current);
-      // QA probe (like __bbPerf / __sky): when the field last baked and how
-      // many epsilon-triggered relights have fired this session.
       const w = window as unknown as { __relight?: { t: number; fires: number } };
       w.__relight = { t: tRef.current, fires: (w.__relight?.fires ?? 0) + 1 };
     }, wait);
@@ -102,6 +107,9 @@ interface FieldPalette {
   grassLit: string;
   stem: string;
   haze: string;
+  skyHorizon: string;
+  peakShadow: string;
+  peakLight: string;
   /** Canvas relight filter for the desk cut-out bake. */
   deskFilter: string;
   /** Bottom-up night-cast strength for the desk bake. */
@@ -118,22 +126,30 @@ interface FieldPalette {
 
 const lch = (l: number, c: number, h: number): OKLCH => ({ l, c, h });
 
-const FIELD_NIGHT = { far: lch(0.27, 0.075, 258), mid: lch(0.2, 0.045, 205), near: lch(0.1, 0.025, 228) };
-const FIELD_DAY = { far: lch(0.62, 0.072, 148), mid: lch(0.45, 0.1, 144), near: lch(0.25, 0.068, 148) };
-const FIELD_GOLD = { far: lch(0.57, 0.09, 72), mid: lch(0.36, 0.085, 112), near: lch(0.15, 0.04, 140) };
-const FIELD_DUSK = lch(0.31, 0.07, 292);
+const FIELD_NIGHT = { far: lch(0.24, 0.068, 255), mid: lch(0.18, 0.048, 198), near: lch(0.09, 0.026, 222) };
+// Lush Studio Ghibli sunlit emerald-viridian meadow turf (rich deep shadows, vibrant midground)
+const FIELD_DAY = { far: lch(0.51, 0.112, 145), mid: lch(0.38, 0.118, 145), near: lch(0.22, 0.088, 147) };
+const FIELD_GOLD = { far: lch(0.54, 0.102, 86), mid: lch(0.36, 0.098, 118), near: lch(0.16, 0.052, 138) };
+const FIELD_DUSK = lch(0.29, 0.068, 286);
 
 function fieldPalette(t: number): FieldPalette {
   const light = getLight(t);
   const { daylight: d, golden: g, twilight: tw } = light;
   const ground = (k: keyof typeof FIELD_DAY) =>
-    tint(tint(mix(FIELD_NIGHT[k], FIELD_DAY[k], d), FIELD_GOLD[k], g * 0.65), FIELD_DUSK, tw * 0.4);
-  // Atmospheric perspective: the far field melts into the horizon haze.
-  const far = tint(ground("far"), light.stops.haze, 0.22 * d + 0.18 * g + 0.1 * tw);
-  // Electric bluebell at night, violet-blue by day, warmer in golden light.
-  const flower = tint(mix(lch(0.58, 0.2, 262), lch(0.64, 0.16, 278), d), lch(0.62, 0.15, 305), g * 0.5);
+    tint(tint(mix(FIELD_NIGHT[k], FIELD_DAY[k], d), FIELD_GOLD[k], g * 0.62), FIELD_DUSK, tw * 0.38);
+  // Subtle atmospheric perspective at the very far horizon line without washing midground emerald.
+  const far = tint(ground("far"), light.stops.haze, 0.18 * d + 0.16 * g + 0.1 * tw);
+  // Periwinkle-lavender lupines by day, luminous electric bluebell at night, warm violet in golden light.
+  const flower = tint(mix(lch(0.58, 0.2, 262), lch(0.68, 0.145, 276), d), lch(0.64, 0.14, 302), g * 0.45);
   const glow = computeMeadowGlow(light);
   const goldenRim = computeMeadowGoldenRim(light);
+  // Soft misty lavender-blue distant hills rising gently behind the horizon
+  const hillShadow = tint(
+    mix(lch(0.28, 0.045, 260), lch(0.58, 0.048, 248), d),
+    light.stops.haze,
+    0.34 + g * 0.14,
+  );
+  const hillLight = tint(light.stops.haze, lch(0.84, 0.022, 240), d * 0.35);
 
   return {
     flower: oklch(flower),
@@ -141,10 +157,13 @@ function fieldPalette(t: number): FieldPalette {
     far: oklch(far),
     mid: oklch(ground("mid")),
     near: oklch(ground("near")),
-    grass: oklch(tint(mix(lch(0.17, 0.04, 168), lch(0.35, 0.082, 144), d), lch(0.3, 0.06, 110), g * 0.5)),
-    grassLit: oklch(mix(lch(0.55, 0.1, 165), lch(0.73, 0.145, 134), d)),
-    stem: oklch(mix(lch(0.38, 0.08, 160), lch(0.51, 0.105, 144), d)),
-    haze: oklch(mix(lch(0.68, 0.14, 268), light.stops.haze, d)),
+    grass: oklch(tint(mix(lch(0.16, 0.042, 166), lch(0.31, 0.105, 146), d), lch(0.29, 0.078, 118), g * 0.48)),
+    grassLit: oklch(tint(mix(lch(0.52, 0.095, 164), lch(0.66, 0.155, 136), d), lch(0.68, 0.13, 98), g * 0.42)),
+    stem: oklch(mix(lch(0.36, 0.082, 158), lch(0.45, 0.12, 144), d)),
+    haze: oklch(mix(lch(0.66, 0.12, 268), light.stops.haze, d)),
+    skyHorizon: light.palette.horizon,
+    peakShadow: oklch(hillShadow),
+    peakLight: oklch(hillLight),
     // The portrait's old CSS relight, ported to the canvas bake.
     deskFilter: `brightness(${(0.6 + d * 0.4 + g * 0.06).toFixed(3)}) saturate(${(0.74 + d * 0.28).toFixed(3)}) contrast(1.03)`,
     deskShade: clamp(0.5 - d * 0.3, 0, 1),
@@ -245,7 +264,7 @@ const GardenScene = memo(function GardenScene({ pal, frame }: { pal: FieldPalett
     flowerColor: pal.flower,
     glow: pal.glow,
     speed: 64,
-    density: mobile ? 70 : 100,
+    density: mobile ? 68 : 96,
     sway: LITE ? { lean: "toward", reach: 6, bounce: 5 } : { lean: "toward", reach: 8, bounce: 6 },
     desk: { ...DESK, filter: pal.deskFilter, shade: pal.deskShade },
     advanced: {
@@ -253,8 +272,11 @@ const GardenScene = memo(function GardenScene({ pal, frame }: { pal: FieldPalett
       vignette: 0,
       grain: 0,
       pebbleCount: 0,
-      hazeOpacity: 55,
+      hazeOpacity: 34,
       hazeColor: pal.haze,
+      skyHorizon: pal.skyHorizon,
+      peakShadow: pal.peakShadow,
+      peakLight: pal.peakLight,
       grassColor: pal.grass,
       grassLit: pal.grassLit,
       stemColor: pal.stem,
@@ -277,16 +299,16 @@ const GardenScene = memo(function GardenScene({ pal, frame }: { pal: FieldPalett
       nearSway: LITE ? 2 : 3,
       ...(mobile
         ? {
-            flowerCount: 240,
-            grassCount: 720,
-            carpetCount: 1600,
+            flowerCount: 220,
+            grassCount: 840,
+            carpetCount: 1500,
             defocus: 11,
-            glowSize: 150,
+            glowSize: 145,
           }
         : {
-            flowerCount: 380,
-            grassCount: 1100,
-            carpetCount: 2200,
+            flowerCount: 360,
+            grassCount: 1380,
+            carpetCount: 2100,
           }),
     },
     style: FIELD_STYLE,

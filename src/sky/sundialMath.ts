@@ -10,14 +10,14 @@ export const SUNDIAL_GEOM = {
 } as const;
 
 export const PIN_DIAL_GEOM = {
-  vbW: 440,
-  vbH: 458,
-  cx: 220,
-  cy: 310,
-  radius: 158,
-  tickCount: 96,
-  angleStart: -115,
-  angleEnd: 115,
+  vbW: 360,
+  vbH: 186,
+  cx: 180,
+  cy: 164,
+  radius: 138,
+  tickCount: 68,
+  angleStart: -90,
+  angleEnd: 90,
 } as const;
 
 export interface ArcPoint {
@@ -71,18 +71,18 @@ function mixRgbHex(a: [number, number, number], b: [number, number, number], t: 
 }
 
 /**
- * Chromatic spectrum across the horizon arc:
- * Pre-Dawn Indigo (#6366f1) -> Morning Sky (#38bdf8) -> Solar Noon (#facc15)
- * -> Golden Amber (#fb923c) -> Dusk Violet (#818cf8)
+ * Chromatic spectrum across the 180° East-West horizon dome:
+ * Twilight Periwinkle -> Morning Blue -> Sky Cyan -> Solar Gold
+ * -> Golden Amber -> Dusk Coral -> Night Indigo
  */
 const CHROMATIC_STOPS: readonly { u: number; rgb: [number, number, number] }[] = [
-  { u: 0.0, rgb: [99, 102, 241] },   // #6366f1 Midnight / Pre-dawn
-  { u: 0.24, rgb: [245, 158, 11] },  // #f59e0b Dawn break
-  { u: 0.42, rgb: [56, 189, 248] },  // #38bdf8 Crisp morning
-  { u: 0.56, rgb: [250, 204, 21] },  // #facc15 Solar noon
-  { u: 0.74, rgb: [251, 146, 60] },  // #fb923c Golden hour
-  { u: 0.86, rgb: [168, 85, 247] },  // #a855f7 Blue dusk
-  { u: 1.0, rgb: [99, 102, 241] },   // #6366f1 Midnight
+  { u: 0.0, rgb: [108, 122, 238] },  // Periwinkle pre-dawn
+  { u: 0.22, rgb: [96, 165, 250] },  // Morning azure
+  { u: 0.36, rgb: [56, 189, 248] },  // Crisp sky cyan
+  { u: 0.52, rgb: [250, 204, 21] },  // Solar zenith gold
+  { u: 0.70, rgb: [251, 146, 60] },  // Golden hour amber
+  { u: 0.86, rgb: [244, 114, 182] }, // Sunset rose-coral
+  { u: 1.0, rgb: [129, 140, 248] },  // Night indigo
 ];
 
 export function chromaticTickColor(u: number): string {
@@ -100,8 +100,8 @@ export function chromaticTickColor(u: number): string {
 }
 
 /**
- * Maps fractional hour t ∈ [0, 24) to PinUI sweep angle in [-115°, +115°].
- * Full continuous 24h scrub: 00:00 (-115°) -> 12:00 (0° zenith) -> 24:00 (+115°).
+ * Maps fractional hour t ∈ [0, 24) to the 180° half-dome angle in [-90°, +90°].
+ * Full continuous 24h scrub: 00:00 (-90° left horizon) -> 12:00 (0° zenith) -> 24:00 (+90° right horizon).
  */
 export function hourToPinAngle(hour: number): number {
   const h = wrapHours(hour);
@@ -110,7 +110,7 @@ export function hourToPinAngle(hour: number): number {
 }
 
 /**
- * Converts a PinUI dial angle (degrees from 12 o'clock, clockwise positive)
+ * Converts a 180° half-dome dial angle (degrees from 12 o'clock, clockwise positive)
  * into a continuous fractional hour in [0, 24).
  */
 export function pinAngleToHour(angleDeg: number): number {
@@ -125,15 +125,14 @@ export function pinAngleToHour(angleDeg: number): number {
 }
 
 /**
- * Computes PinUI-grade rising bottom atmospheric wash colors & polarity for hour t.
- * Daylight & golden hour wear warm alabaster with luminous atmospheric glow;
- * twilight & night wear deep precision obsidian with cool celestial indigo/silver wash.
+ * Computes rising bottom atmospheric wash colors & semantic polarity for hour t.
+ * Enclosure surface luminance interpolates smoothly via computeSurfaceDaylight(t).
  */
 export function pinDialAtmosphere(hour: number): PinDialAtmosphere {
   const h = wrapHours(hour);
 
-  // Adaptive polarity: light alabaster from dawn break through golden hour; dark obsidian at dusk/night
-  const theme: "light" | "dark" = h >= 6.0 && h <= 18.6 ? "light" : "dark";
+  // Semantic polarity aligned with computeSurfaceDaylight midpoint (06:08 / 18:15)
+  const theme: "light" | "dark" = h >= 6.1 && h <= 18.25 ? "light" : "dark";
 
   const stops: { h: number; c1: [number, number, number]; c2: [number, number, number]; c3: [number, number, number] }[] = [
     { h: 0.0, c1: [30, 58, 138], c2: [59, 130, 246], c3: [191, 219, 254] },    // Midnight indigo-blue

@@ -22,7 +22,7 @@ import {
  * atmospheric veil lifts to reveal the live sky and meadow.
  */
 
-const SEED_WORD = "Rudraksh";
+const SEED_WORD = "rudraksh";
 const LETTER_STEP_MS = 95;
 const BLOOM_HOLD_MS = 1850;
 const DOCK_DURATION_MS = 760;

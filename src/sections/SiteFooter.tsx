@@ -28,7 +28,7 @@ import {
  */
 
 const EMAIL = "rudraksh.singhh@outlook.com";
-const WORDMARK = "Rudraksh";
+const WORDMARK = "rudraksh";
 
 const SOCIAL_LINKS = [
   { label: "X / Twitter", href: "https://x.com/rudrakshsinghh" },
@@ -147,9 +147,16 @@ export function SiteFooter() {
       raf = 0;
       if (!visible || !garden) return;
       if (bloomStartTs === null) bloomStartTs = now;
-      const dt = (now - lastTs) / 1000;
+      const elapsed = now - bloomStartTs;
+      const dtMs = now - lastTs;
+      const minInterval = pointer.active || elapsed < 3200 ? 15 : 33;
+      if (dtMs < minInterval) {
+        if (!reduced) raf = requestAnimationFrame(render);
+        return;
+      }
+      const dt = Math.min(0.05, dtMs / 1000);
       lastTs = now;
-      renderWordmarkGarden(garden, gb, gf, now - bloomStartTs, dt, pointer, {
+      renderWordmarkGarden(garden, gb, gf, elapsed, dt, pointer, {
         dpr,
         isNight: isNightRef.current,
         reducedMotion: reduced,
@@ -212,107 +219,105 @@ export function SiteFooter() {
   }, [activePreset]);
 
   return (
-    <footer id="contact" className="site-foot-editorial">
+    <footer id="contact" className={`site-foot-editorial ${isNight ? "is-night" : "is-day"}`}>
       {/* Legacy alias anchor */}
       <span id="crater" aria-hidden="true" className="absolute top-0" />
 
-      <div className="shell">
-        <div className={`foot-sheet ${isNight ? "is-night" : "is-day"}`}>
-          {/* 1. Calm Top Contact Strip */}
-          <div className="foot-contact-row" data-reveal>
-            <div className="foot-contact-copy">
-              <p className="foot-eyebrow">PRODUCT DESIGN &amp; DESIGN ENGINEERING · 2026</p>
-              <h2 className="foot-headline">
-                Have a product, team, or prototype in mind?
-              </h2>
-              <p className="foot-location">
-                Greater Noida, India · <span className="tabular-nums">{istClock || "--:--"} IST</span>
-              </p>
+      <div className="shell foot-inner">
+        {/* 1. Calm Top Contact Strip */}
+        <div className="foot-contact-row" data-reveal>
+          <div className="foot-contact-copy">
+            <p className="foot-eyebrow">Product Design &amp; Code · 2026</p>
+            <h2 className="foot-headline">
+              Have a product, team, or prototype in mind?
+            </h2>
+            <p className="foot-location">
+              Greater Noida, India · <span className="tabular-nums">{istClock || "--:--"} IST</span>
+            </p>
+          </div>
+
+          <div className="foot-contact-actions">
+            <div className="foot-action-primary">
+              <button
+                type="button"
+                className="foot-email-btn"
+                onClick={copyEmail}
+                aria-label={`Copy ${EMAIL} to clipboard`}
+              >
+                <span>{copied ? "Copied to clipboard ✓" : EMAIL}</span>
+                {!copied && (
+                  <span className="foot-copy-glyph" aria-hidden="true">
+                    ⧉
+                  </span>
+                )}
+              </button>
+
+              <a
+                href="/resume.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="foot-resume-btn"
+              >
+                Resume ↗
+              </a>
             </div>
 
-            <div className="foot-contact-actions">
-              <div className="foot-action-primary">
-                <button
-                  type="button"
-                  className="foot-email-btn"
-                  onClick={copyEmail}
-                  aria-label={`Copy ${EMAIL} to clipboard`}
-                >
-                  <span>{copied ? "Copied to clipboard ✓" : EMAIL}</span>
-                  {!copied && (
-                    <span className="foot-copy-glyph" aria-hidden="true">
-                      ⧉
-                    </span>
-                  )}
-                </button>
-
+            <div className="foot-social-row" aria-label="Social links">
+              {SOCIAL_LINKS.map((s) => (
                 <a
-                  href="/resume.pdf"
+                  key={s.label}
+                  href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="foot-resume-btn"
+                  className="foot-social-link"
                 >
-                  Resume ↗
+                  {s.label}
                 </a>
-              </div>
-
-              <div className="foot-social-row" aria-label="Social links">
-                {SOCIAL_LINKS.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="foot-social-link"
-                  >
-                    {s.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <hr className="foot-rule" />
-
-          {/* 2. Monumental Living Floral Wordmark Stage (zero buttons or toolbar) */}
-          <div
-            ref={stageRef}
-            className={`foot-flora-stage ${hasArrived ? "is-arrived" : ""}`}
-            data-preset={activePreset}
-          >
-            <canvas ref={backRef} className="foot-flora-canvas" aria-hidden="true" />
-            <div ref={wordRef} className="foot-wordmark" aria-label="Rudraksh">
-              {WORDMARK.split("").map((ch, idx) => (
-                <span key={idx} data-footer-ch={ch} aria-hidden="true">
-                  {ch}
-                </span>
               ))}
             </div>
-            <canvas
-              ref={frontRef}
-              className="foot-flora-canvas foot-flora-canvas--front"
-              aria-hidden="true"
-            />
+          </div>
+        </div>
+
+        <hr className="foot-rule" />
+
+        {/* 2. Monumental Living Floral Wordmark Stage (Akshat TypeGarden proportions, zero toolbar) */}
+        <div
+          ref={stageRef}
+          className={`foot-flora-stage ${hasArrived ? "is-arrived" : ""}`}
+          data-preset={activePreset}
+        >
+          <canvas ref={backRef} className="foot-flora-canvas" aria-hidden="true" />
+          <div ref={wordRef} className="foot-wordmark" aria-label="rudraksh">
+            {WORDMARK.split("").map((ch, idx) => (
+              <span key={idx} data-footer-ch={ch} aria-hidden="true">
+                {ch}
+              </span>
+            ))}
+          </div>
+          <canvas
+            ref={frontRef}
+            className="foot-flora-canvas foot-flora-canvas--front"
+            aria-hidden="true"
+          />
+        </div>
+
+        <hr className="foot-rule" />
+
+        {/* 3. Quiet Minimal Colophon & Back to Sky */}
+        <div className="foot-meta-row">
+          <div className="foot-meta-left">
+            <span>© {new Date().getFullYear()} Rudraksh Singh</span>
+            <span className="foot-meta-sep" aria-hidden="true">·</span>
+            <nav className="foot-meta-cases" aria-label="Case studies">
+              <Link href="/case/sentinel">Sentinel</Link>
+              <Link href="/case/lokai">LokAI</Link>
+              <Link href="/case/feul">Feul</Link>
+            </nav>
           </div>
 
-          <hr className="foot-rule" />
-
-          {/* 3. Quiet Minimal Colophon & Back to Sky */}
-          <div className="foot-meta-row">
-            <div className="foot-meta-left">
-              <span>© {new Date().getFullYear()} Rudraksh Singh</span>
-              <span className="foot-meta-sep" aria-hidden="true">·</span>
-              <nav className="foot-meta-cases" aria-label="Case studies">
-                <Link href="/case/sentinel">Sentinel</Link>
-                <Link href="/case/lokai">LokAI</Link>
-                <Link href="/case/feul">Feul</Link>
-              </nav>
-            </div>
-
-            <button type="button" className="foot-top-btn" onClick={backToSky}>
-              <span aria-hidden="true">↑</span> Back to sky
-            </button>
-          </div>
+          <button type="button" className="foot-top-btn" onClick={backToSky}>
+            <span aria-hidden="true">↑</span> Back to sky
+          </button>
         </div>
       </div>
     </footer>

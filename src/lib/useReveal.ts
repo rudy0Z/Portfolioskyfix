@@ -18,18 +18,32 @@ export function useReveal(dep: unknown) {
       return;
     }
 
+    const revealIfVisible = () => {
+      const vh = window.innerHeight || 900;
+      for (const el of els) {
+        if (el.classList.contains("is-in")) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < vh * 1.02 && rect.bottom > -40) {
+          el.classList.add("is-in");
+        }
+      }
+    };
+    revealIfVisible();
+
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting || entry.boundingClientRect.top < window.innerHeight) {
             entry.target.classList.add("is-in");
             io.unobserve(entry.target);
           }
         }
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.1 },
+      { rootMargin: "0px 0px -2% 0px", threshold: 0.01 },
     );
-    els.forEach((el) => io.observe(el));
+    els.forEach((el) => {
+      if (!el.classList.contains("is-in")) io.observe(el);
+    });
     return () => io.disconnect();
   }, [dep]);
 }

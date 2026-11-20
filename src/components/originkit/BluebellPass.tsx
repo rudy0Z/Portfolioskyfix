@@ -449,7 +449,30 @@ function makeCanvas(w: number, h: number) {
     c.height = Math.max(1, Math.ceil(h))
     return c
 }
-const ctx2d = (c: HTMLCanvasElement) => c.getContext("2d") as CanvasRenderingContext2D
+function releaseCanvas(c: HTMLCanvasElement | null | undefined) {
+    if (!c) return
+    c.width = 0
+    c.height = 0
+}
+/**
+ * Release a replaced GPU-backed canvas AFTER the compositor has flushed
+ * pending deferred drawImage commands (2 rAF ticks / ~120ms). Synchronously
+ * zeroing a canvas right after drawImage destroys its GPU SharedImage before
+ * Skia flushes, turning sprites and ground layers blank on hardware Canvas2D.
+ */
+function deferReleaseCanvas(c: HTMLCanvasElement | null | undefined) {
+    if (!c) return
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => releaseCanvas(c))
+        })
+    }
+}
+const ctx2d = (c: HTMLCanvasElement) => {
+    const g = c.getContext("2d", { willReadFrequently: true })
+    if (!g) throw new Error(`Canvas2D context unavailable (${c.width}x${c.height})`)
+    return g
+}
 
 let skyGrid: Float32Array | null = null
 let skyRowBase: Float32Array | null = null
@@ -590,35 +613,35 @@ function makePose(R: () => number, pitch: number, open: number, sp = 0): Pose {
 }
 
 function paintLupine(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
-    // Conical tiered violet lupine / lavender raceme spire (bottom-to-top florets)
-    const tiers = 7
-    const spireH = R * 1.36
-    const baseY = R * 0.44
-    // Subtle central stalk
-    g.strokeStyle = "rgba(46, 92, 62, 0.85)"
-    g.lineWidth = Math.max(1.2, R * 0.065)
+    // Tall slender Studio Ghibli periwinkle-lavender conical lupine raceme spire
+    const tiers = 8
+    const spireH = R * 1.62
+    const baseY = R * 0.48
+    // Delicate viridian central stem
+    g.strokeStyle = "rgba(38, 96, 52, 0.88)"
+    g.lineWidth = Math.max(1.1, R * 0.052)
     g.lineCap = "round"
     g.beginPath()
-    g.moveTo(0, baseY + R * 0.12)
-    g.lineTo(0, baseY - spireH * 0.92)
+    g.moveTo(0, baseY + R * 0.14)
+    g.lineTo(0, baseY - spireH * 0.94)
     g.stroke()
 
     for (let t = 0; t < tiers; t++) {
-        const u = t / (tiers - 1) // 0 = base, 1 = conical tip
+        const u = t / (tiers - 1) // 0 = broad base, 1 = delicate conical tip
         const y = baseY - u * spireH
-        const spread = R * (0.42 * (1 - u * 0.72) + 0.06)
-        const count = u > 0.75 ? 2 : u > 0.42 ? 3 : 4
+        const spread = R * (0.34 * (1 - u * 0.78) + 0.045)
+        const count = u > 0.74 ? 2 : u > 0.34 ? 3 : 4
         for (let j = 0; j < count; j++) {
             const frac = (j / (count - 1)) * 2 - 1
             const jit = p.jit[(t * 3 + j) % 24]
-            const fx = frac * spread + jit * R * 0.05
-            const fy = y + Math.abs(frac) * R * 0.08 + jit * R * 0.03
-            const rx = R * (0.19 - u * 0.075)
-            const ry = R * (0.14 - u * 0.045)
-            const rot = frac * 0.48 + jit * 0.15
+            const fx = frac * spread + jit * R * 0.038
+            const fy = y + Math.abs(frac) * R * 0.065 + jit * R * 0.024
+            const rx = R * (0.165 - u * 0.072)
+            const ry = R * (0.118 - u * 0.044)
+            const rot = frac * 0.44 + jit * 0.12
 
-            const gr = g.createRadialGradient(fx - rx * 0.25, fy - ry * 0.35, 0, fx, fy, rx * 1.4)
-            gr.addColorStop(0, u > 0.65 ? pal.base : pal.mid)
+            const gr = g.createLinearGradient(fx - rx * 0.35, fy - ry, fx + rx * 0.25, fy + ry)
+            gr.addColorStop(0, u > 0.55 ? pal.base : pal.mid)
             gr.addColorStop(0.55, pal.tip)
             gr.addColorStop(1, pal.deep)
 
@@ -630,28 +653,162 @@ function paintLupine(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palet
             g.ellipse(0, 0, rx, ry, 0, 0, TAU)
             g.fill()
             g.strokeStyle = pal.edge
-            g.lineWidth = Math.max(0.6, R * 0.018)
+            g.lineWidth = Math.max(0.55, R * 0.015)
             g.stroke()
-            // Tiny sunlit highlight on upper floret lip
-            g.fillStyle = "rgba(255, 255, 255, 0.26)"
+            // Crisp cel-shaded sunlit upper hood highlight
+            g.fillStyle = "rgba(255, 255, 255, 0.36)"
             g.beginPath()
-            g.ellipse(-rx * 0.2, -ry * 0.25, rx * 0.38, ry * 0.26, -0.2, 0, TAU)
+            g.ellipse(-rx * 0.18, -ry * 0.28, rx * 0.42, ry * 0.25, -0.15, 0, TAU)
             g.fill()
             g.restore()
         }
     }
-    // Conical tip bud
+    // Delicate pale lavender conical crown bud
     g.fillStyle = pal.base
     g.beginPath()
-    g.ellipse(0, baseY - spireH - R * 0.05, R * 0.09, R * 0.13, 0, 0, TAU)
+    g.ellipse(0, baseY - spireH - R * 0.055, R * 0.075, R * 0.125, 0, 0, TAU)
     g.fill()
+    g.strokeStyle = pal.edge
+    g.lineWidth = Math.max(0.5, R * 0.014)
+    g.stroke()
+}
+
+function paintCosmos(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
+    // Airy Studio Ghibli 8-petal notched blush-pink cosmos tilted gently in 3/4 view
+    const sqY = 0.56 + 0.42 * Math.cos(p.pitch)
+    const count = 8
+    g.save()
+    g.scale(1, sqY)
+    g.rotate(p.yaw)
+    for (let i = 0; i < count; i++) {
+        const a = (i * TAU) / count + p.jit[i] * 0.07
+        const len = R * (0.9 + p.jit[(i + 5) % 24] * 0.09)
+        const w = len * 0.34
+        g.save()
+        g.rotate(a)
+        const gr = g.createLinearGradient(0, 0, 0, -len)
+        gr.addColorStop(0, pal.deep)
+        gr.addColorStop(0.28, pal.tip)
+        gr.addColorStop(0.72, pal.mid)
+        gr.addColorStop(1, pal.base)
+        g.fillStyle = gr
+        g.beginPath()
+        g.moveTo(0, -R * 0.06)
+        g.bezierCurveTo(-w * 0.65, -len * 0.35, -w, -len * 0.78, -w * 0.42, -len * 0.96)
+        g.lineTo(-w * 0.12, -len * 0.89)
+        g.lineTo(0, -len)
+        g.lineTo(w * 0.14, -len * 0.89)
+        g.lineTo(w * 0.42, -len * 0.96)
+        g.bezierCurveTo(w, -len * 0.78, w * 0.65, -len * 0.35, 0, -R * 0.06)
+        g.closePath()
+        g.fill()
+        g.strokeStyle = pal.edge
+        g.lineWidth = Math.max(0.55, R * 0.018)
+        g.stroke()
+        // Subtle delicate petal crease highlight
+        g.strokeStyle = "rgba(255, 255, 255, 0.32)"
+        g.lineWidth = Math.max(0.5, R * 0.016)
+        g.beginPath()
+        g.moveTo(0, -len * 0.25)
+        g.lineTo(0, -len * 0.72)
+        g.stroke()
+        g.restore()
+    }
+    g.restore()
+    paintCoreFront(g, R, p, 1)
+}
+
+function paintPoppy(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
+    // Sunlit golden-marigold 5-petal satin cupped California poppy
+    const sqY = 0.58 + 0.38 * Math.cos(p.pitch)
+    const count = 5
+    g.save()
+    g.scale(1, sqY)
+    g.rotate(p.yaw)
+    for (let i = 0; i < count; i++) {
+        const a = (i * TAU) / count + p.jit[i] * 0.09
+        const len = R * (0.86 + p.jit[(i + 7) % 24] * 0.08)
+        const w = len * 0.58
+        g.save()
+        g.rotate(a)
+        const gr = g.createRadialGradient(0, -len * 0.25, R * 0.04, 0, -len * 0.55, len * 0.95)
+        gr.addColorStop(0, pal.deep)
+        gr.addColorStop(0.38, pal.tip)
+        gr.addColorStop(0.78, pal.mid)
+        gr.addColorStop(1, pal.base)
+        g.fillStyle = gr
+        g.beginPath()
+        g.moveTo(0, 0)
+        g.bezierCurveTo(-w * 0.88, -len * 0.26, -w * 0.96, -len * 0.84, -w * 0.14, -len * 0.98)
+        g.quadraticCurveTo(0, -len * 1.03, w * 0.14, -len * 0.98)
+        g.bezierCurveTo(w * 0.96, -len * 0.84, w * 0.88, -len * 0.26, 0, 0)
+        g.closePath()
+        g.fill()
+        g.strokeStyle = pal.edge
+        g.lineWidth = Math.max(0.55, R * 0.018)
+        g.stroke()
+        // Warm sunlit rim sheen along upper outer edge
+        g.strokeStyle = "rgba(255, 252, 224, 0.44)"
+        g.lineWidth = Math.max(0.6, R * 0.022)
+        g.beginPath()
+        g.arc(0, -len * 0.54, len * 0.44, -Math.PI * 0.78, -Math.PI * 0.22)
+        g.stroke()
+        g.restore()
+    }
+    g.restore()
+    paintCoreFront(g, R, p, 2)
+}
+
+function paintDaisy(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
+    // Crisp Studio Ghibli 15-petal pointed pure-white meadow daisy with raised ochre dome
+    const sqY = 0.54 + 0.44 * Math.cos(p.pitch)
+    const count = 15
+    g.save()
+    g.scale(1, sqY)
+    g.rotate(p.yaw)
+    for (let i = 0; i < count; i++) {
+        const a = (i * TAU) / count + p.jit[i % 24] * 0.045
+        const len = R * (0.94 + p.jit[(i + 9) % 24] * 0.08)
+        const w = len * 0.165
+        g.save()
+        g.rotate(a)
+        const gr = g.createLinearGradient(0, -R * 0.12, 0, -len)
+        gr.addColorStop(0, pal.deep)
+        gr.addColorStop(0.28, pal.tip)
+        gr.addColorStop(0.65, pal.mid)
+        gr.addColorStop(1, pal.base)
+        g.fillStyle = gr
+        g.beginPath()
+        g.moveTo(0, -R * 0.12)
+        g.bezierCurveTo(-w, -len * 0.36, -w * 0.85, -len * 0.82, 0, -len)
+        g.bezierCurveTo(w * 0.85, -len * 0.82, w, -len * 0.36, 0, -R * 0.12)
+        g.closePath()
+        g.fill()
+        g.strokeStyle = pal.edge
+        g.lineWidth = Math.max(0.45, R * 0.014)
+        g.stroke()
+        g.restore()
+    }
+    g.restore()
+    paintCoreFront(g, R, p, 3)
 }
 
 function paintFlower(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
     const S0 = p.sp & 3
-    // Species 0: Conical tiered Violet Lupines (unless rendered as flat canopy fan)
-    if (S0 === 0 && p.fan === 0) {
-        paintLupine(g, R, p, pal)
+    if (p.fan === 0) {
+        if (S0 === 0) {
+            paintLupine(g, R, p, pal)
+            return
+        }
+        if (S0 === 1) {
+            paintCosmos(g, R, p, pal)
+            return
+        }
+        if (S0 === 2) {
+            paintPoppy(g, R, p, pal)
+            return
+        }
+        paintDaisy(g, R, p, pal)
         return
     }
     const cb = Math.cos(p.pitch),
@@ -908,39 +1065,31 @@ function paintCoreFront(g: CanvasRenderingContext2D, R: number, p: Pose, S: numb
  * open blooms.
  */
 function paintBud(g: CanvasRenderingContext2D, r: number, pal: Palette) {
-    const gr = g.createLinearGradient(-r * 0.5, -r * 0.7, r * 0.4, r * 0.6)
+    const s = r * 0.64
+    const gr = g.createLinearGradient(-s * 0.4, -s * 0.75, s * 0.35, s * 0.55)
     gr.addColorStop(0, pal.base)
     gr.addColorStop(0.55, pal.mid)
     gr.addColorStop(1, pal.deep)
     g.fillStyle = gr
     g.beginPath()
-    g.moveTo(0, r * 0.62)
-    g.bezierCurveTo(-r * 0.5, r * 0.25, -r * 0.46, -r * 0.45, 0, -r * 0.72)
-    g.bezierCurveTo(r * 0.46, -r * 0.45, r * 0.5, r * 0.25, 0, r * 0.62)
+    g.moveTo(0, s * 0.62)
+    g.bezierCurveTo(-s * 0.34, s * 0.24, -s * 0.3, -s * 0.42, 0, -s * 0.82)
+    g.bezierCurveTo(s * 0.3, -s * 0.42, s * 0.34, s * 0.24, 0, s * 0.62)
     g.closePath()
     g.fill()
     g.strokeStyle = pal.edge
-    g.lineWidth = r * 0.05
+    g.lineWidth = Math.max(0.5, s * 0.045)
     g.stroke()
-    // calyx leaflets hugging the base
-    g.strokeStyle = "rgba(28, 74, 52, 0.95)"
-    g.lineWidth = r * 0.09
+    // Delicate emerald calyx leaflets hugging the base
+    g.strokeStyle = "rgba(32, 92, 48, 0.92)"
+    g.lineWidth = Math.max(0.7, s * 0.095)
     g.lineCap = "round"
-    for (const a of [-0.85, 0, 0.85]) {
+    for (const a of [-0.72, 0, 0.72]) {
         g.beginPath()
-        g.moveTo(0, r * 0.6)
-        g.quadraticCurveTo(Math.sin(a) * r * 0.28, r * 0.38, Math.sin(a) * r * 0.34, r * 0.14)
+        g.moveTo(0, s * 0.62)
+        g.quadraticCurveTo(Math.sin(a) * s * 0.24, s * 0.36, Math.sin(a) * s * 0.28, s * 0.1)
         g.stroke()
     }
-    const sg = g.createLinearGradient(-r * 0.3, -r * 0.6, r * 0.2, 0)
-    sg.addColorStop(0, "rgba(255,255,255,0.32)")
-    sg.addColorStop(1, "rgba(255,255,255,0)")
-    g.strokeStyle = sg
-    g.lineWidth = r * 0.1
-    g.beginPath()
-    g.moveTo(-r * 0.14, -r * 0.34)
-    g.quadraticCurveTo(-r * 0.2, -r * 0.1, -r * 0.1, r * 0.18)
-    g.stroke()
 }
 
 function paintSeed(g: CanvasRenderingContext2D, r: number) {
@@ -991,17 +1140,17 @@ function lightCore(g: CanvasRenderingContext2D, R: number, k: number, col: RGBA 
     g.globalCompositeOperation = "source-over"
 }
 
-/* Four unmistakable daytime botanical species palettes that shift gently
- * toward nocturnal bioluminescent bluebell as `nightK` rises after dusk. */
+/* Four harmonious Studio Ghibli daylight botanical species palettes that shift
+ * gently toward nocturnal bioluminescent bluebell as `nightK` rises after dusk. */
 const SPECIES_PAL: readonly { pale: RGBA; mid: RGBA; tip: RGBA; deep: RGBA; edge: RGBA }[] = [
-    // 0: Violet Lupines / Lavender (#8b5cf6, #a78bfa, #c4b5fd)
-    { pale: [212, 198, 254, 1], mid: [167, 139, 250, 1], tip: [139, 92, 246, 1], deep: [91, 33, 182, 1], edge: [68, 24, 146, 1] },
-    // 1: Pink Cosmos (#f472b6, #ec4899)
-    { pale: [252, 212, 234, 1], mid: [244, 114, 182, 1], tip: [236, 72, 153, 1], deep: [190, 24, 93, 1], edge: [157, 23, 77, 1] },
-    // 2: Golden-Orange California Poppies (#f59e0b, #ea580c)
-    { pale: [254, 240, 178, 1], mid: [245, 158, 11, 1], tip: [234, 88, 12, 1], deep: [180, 56, 8, 1], edge: [138, 42, 10, 1] },
-    // 3: Crisp White Meadow Daisies (#ffffff)
-    { pale: [255, 255, 255, 1], mid: [252, 253, 255, 1], tip: [244, 247, 252, 1], deep: [204, 212, 226, 1], edge: [148, 163, 184, 1] },
+    // 0: Periwinkle-Lavender Lupines (cool soft violet-blue, never neon purple)
+    { pale: [226, 222, 255, 1], mid: [176, 168, 242, 1], tip: [134, 126, 218, 1], deep: [94, 86, 178, 1], edge: [72, 66, 142, 1] },
+    // 1: Airy Blush-Pink Cosmos (delicate pastel rose, never harsh magenta)
+    { pale: [255, 242, 248, 1], mid: [252, 198, 224, 1], tip: [242, 138, 188, 1], deep: [216, 84, 146, 1], edge: [176, 68, 122, 1] },
+    // 2: Sunlit Golden-Marigold California Poppies (warm amber-gold satin)
+    { pale: [254, 244, 168, 1], mid: [251, 196, 48, 1], tip: [244, 152, 16, 1], deep: [210, 92, 10, 1], edge: [158, 66, 10, 1] },
+    // 3: Crisp Pure-White Meadow Daisies (clean snow white + soft cool slate base)
+    { pale: [255, 255, 255, 1], mid: [250, 252, 255, 1], tip: [238, 243, 250, 1], deep: [198, 208, 224, 1], edge: [138, 154, 176, 1] },
 ]
 
 function speciesPalette(sp: number, fl: RGBA, vi = 0, nightK = 0): Palette {
@@ -1051,7 +1200,7 @@ function packAtlas(list: Sprite[]) {
         w = 0
     const pos: number[] = []
     for (const sp of order) {
-        if (x + sp.sw > maxW) {
+        if (x > 0 && x + sp.sw > maxW) {
             x = 0
             y += rowH + 1
             rowH = 0
@@ -1061,7 +1210,7 @@ function packAtlas(list: Sprite[]) {
         rowH = Math.max(rowH, sp.sh)
         w = Math.max(w, x)
     }
-    const atlas = makeCanvas(w, y + rowH)
+    const atlas = makeCanvas(Math.max(1, w), Math.max(1, y + rowH))
     const g = ctx2d(atlas)
     order.forEach((sp, i) => {
         g.drawImage(sp.c, sp.sx, sp.sy, sp.sw, sp.sh, pos[i * 2], pos[i * 2 + 1], sp.sw, sp.sh)
@@ -1069,6 +1218,10 @@ function packAtlas(list: Sprite[]) {
         sp.sx = pos[i * 2]
         sp.sy = pos[i * 2 + 1]
     })
+    // Do NOT manually zero temp sprite canvases: hardware-accelerated Canvas2D
+    // defers drawImage execution, so zeroing source canvases destroys their GPU
+    // backing textures before Skia flushes `atlas`. Unreferenced temps are
+    // reclaimed safely by GC after Blink's SkImage refcount drops.
     return atlas
 }
 const FILTER_OK = (() => {
@@ -1096,12 +1249,15 @@ function blurFromSprite(src: Sprite, blur: number): Sprite {
 function flowerSprite(r: number, pose: Pose, pal: Palette, blur: number, halo?: { col: RGBA; a: number; size: number }): Sprite {
     const pad = Math.ceil(blur * 2.5 + 2)
     const hr = halo ? r * 1.1 * halo.size : 0
+    const isLupine = pose.fan === 0 && (pose.sp & 3) === 0
+    const topReach = isLupine ? r * 1.44 : r * 1.1
+    const botReach = isLupine ? r * 0.72 : r * 0.68
     const w = Math.ceil(Math.max(r * 2.3, hr * 2)) + pad * 2
-    const h = Math.ceil(Math.max(r * 1.75, hr * 1.6 + r * 0.2)) + pad * 2
+    const h = Math.ceil(Math.max(topReach + botReach, hr * 1.6 + r * 0.2)) + pad * 2
     const c = makeCanvas(w, h)
     const g = ctx2d(c)
     const ox = w / 2,
-        oy = pad + Math.max(r * 1.1, hr * 0.8 + r * 0.1)
+        oy = pad + Math.max(topReach, hr * 0.8 + r * 0.1)
     if (halo && halo.a > 0) {
         g.save()
         g.translate(ox, oy - r * 0.1)
@@ -1254,8 +1410,8 @@ function sowFlowers(
                 // without dissolving into noisy speckling.
                 let sp = clusterSpecies(u, z, adv.seed | 0)
                 if (r6 > 0.93) sp = (r6 * 7.3) % 4 | 0
-                // Life stages: ~14% closed buds, ~7% gone-to-seed heads.
-                const kind = r5 > 0.93 ? 2 : r5 > 0.79 ? 1 : 0
+                // Natural botanical buds (~13%) keep the meadow organic without dotted dandelion artifacts.
+                const kind = r5 > 0.87 ? 1 : 0
                 const b: Bloom = {
                     bu: u,
                     bv,
@@ -1280,7 +1436,9 @@ function sowFlowers(
         }
     }
     HEROES.forEach(([x, y, r, pitch, lean, blur], i) => {
-        const Rw = r * PX * fs * (pitch < 20 ? 1.25 : 1.12)
+        // Keep foreground meadow crisp on both desktop and mobile — skip oversized bokeh blur blobs
+        if (blur > 4) return
+        const Rw = r * PX * fs * (pitch < 20 ? 0.78 : 0.72)
         const stem = Rw * 2.1
         const cu = (x - 282) * PX
         const cv = y * PX + dy
@@ -1294,13 +1452,13 @@ function sowFlowers(
             pose: i,
             kind: 0,
             hero: i,
-            blur: blur / Math.max(1, r),
+            blur: Math.min(0.18, blur / Math.max(1, r)),
             z,
             xn: cu / 1.5 + 0.5,
             depth: clamp(z / 0.55),
             gph: hash(i, 3, 9) * TAU,
             gper: hash(i, 5, 9) < 0.5 ? 1 : 0.5,
-            alpha: 1,
+            alpha: 0.96,
             bend: hash(i, 7, 9) - 0.5,
         })
     })
@@ -1826,10 +1984,16 @@ function buildGround(
                 if (r[i + 1][0] >= box.u0 && r[i][0] <= box.u1) top = Math.min(top, r[i][1], r[i + 1][1])
     const gBox: Box = { u0: box.u0, u1: box.u1, v0: Math.max(box.v0, top + dy - 0.01), v1: box.v1 }
     if (gBox.v1 <= gBox.v0) gBox.v1 = gBox.v0 + 0.01
+    const MAX_GROUND_AREA = 1.8e6
+    const MAX_GROUND_DIM = 2048
+    const spanU = Math.max(0.01, gBox.u1 - gBox.u0)
+    const spanV = Math.max(0.01, gBox.v1 - gBox.v0)
     let r = res
-    const area = (gBox.u1 - gBox.u0) * (gBox.v1 - gBox.v0) * r * r
-    if (area > 9e6) r *= Math.sqrt(9e6 / area)
-    const c = makeCanvas((gBox.u1 - gBox.u0) * r, (gBox.v1 - gBox.v0) * r)
+    const area = spanU * spanV * r * r
+    if (area > MAX_GROUND_AREA) r *= Math.sqrt(MAX_GROUND_AREA / area)
+    if (spanU * r > MAX_GROUND_DIM) r = MAX_GROUND_DIM / spanU
+    if (spanV * r > MAX_GROUND_DIM) r = MAX_GROUND_DIM / spanV
+    const c = makeCanvas(spanU * r, spanV * r)
     const g = ctx2d(c)
     g.setTransform(r, 0, 0, r, -gBox.u0 * r, -gBox.v0 * r)
     const px = 1 / r
@@ -1837,16 +2001,62 @@ function buildGround(
     const skyHor = parseColor(adv.skyHorizon, [2, 82, 196, 1])
     const haze = parseColor(adv.hazeColor, [111, 143, 255, 1])
 
-    // Far range: delicate snowy peaks low on the horizon under the haze. Kept
-    // in both landscapes; the open field lightens the body into pale
-    // atmospheric hills and lets the meadow fill meet it.
-    {
+    // Far range: in open mode, paint two soft misty Studio Ghibli rolling hills
+    // melting seamlessly into the horizon haze (zero harsh Alpine triangles).
+    if (open) {
+        const pS = parseColor(adv.peakShadow, [168, 178, 198, 1])
+        const pL = parseColor(adv.peakLight, [214, 220, 232, 1])
+        const uMin = gBox.u0 - 0.1
+        const uMax = gBox.u1 + 0.1
+        const hSteps = 96
+        const baseBottom = 0.56 + dy
+
+        // Layer 1: very faint distant mountain swell far back in the mist
+        const backBody = mix(mix(pS, skyHor, 0.52), haze, 0.35)
+        g.beginPath()
+        for (let i = 0; i <= hSteps; i++) {
+            const u = uMin + ((uMax - uMin) * i) / hSteps
+            const swell1 = 0.052 * Math.exp(-Math.pow((u + 0.28) / 0.42, 2))
+            const swell2 = 0.038 * Math.exp(-Math.pow((u - 0.48) / 0.48, 2))
+            const ripple = 0.004 * Math.sin(u * 7.2 + 0.8) + 0.0025 * Math.cos(u * 13.5)
+            const v = 0.502 - swell1 - swell2 - ripple + dy
+            i ? g.lineTo(u, v) : g.moveTo(u, v)
+        }
+        g.lineTo(uMax, baseBottom)
+        g.lineTo(uMin, baseBottom)
+        g.closePath()
+        const bgGrad = g.createLinearGradient(0, 0.43 + dy, 0, 0.52 + dy)
+        bgGrad.addColorStop(0, rgba(mix(backBody, pL, 0.22), 0.72))
+        bgGrad.addColorStop(0.65, rgba(mix(backBody, haze, 0.45), 0.78))
+        bgGrad.addColorStop(1, rgba(haze, 0.86))
+        g.fillStyle = bgGrad
+        g.fill()
+
+        // Layer 2: closer soft rolling lavender-sage hill behind the meadow edge
+        const nearBody = mix(mix(pS, skyHor, 0.34), haze, 0.24)
+        g.beginPath()
+        for (let i = 0; i <= hSteps; i++) {
+            const u = uMin + ((uMax - uMin) * i) / hSteps
+            const hillA = 0.034 * Math.exp(-Math.pow((u + 0.62) / 0.46, 2))
+            const hillB = 0.026 * Math.exp(-Math.pow((u - 0.14) / 0.52, 2))
+            const hillC = 0.029 * Math.exp(-Math.pow((u - 0.78) / 0.38, 2))
+            const v = 0.506 - hillA - hillB - hillC + dy
+            i ? g.lineTo(u, v) : g.moveTo(u, v)
+        }
+        g.lineTo(uMax, baseBottom)
+        g.lineTo(uMin, baseBottom)
+        g.closePath()
+        const fgGrad = g.createLinearGradient(0, 0.46 + dy, 0, 0.525 + dy)
+        fgGrad.addColorStop(0, rgba(nearBody, 0.76))
+        fgGrad.addColorStop(0.75, rgba(mix(nearBody, haze, 0.5), 0.84))
+        fgGrad.addColorStop(1, rgba(haze, 0.92))
+        g.fillStyle = fgGrad
+        g.fill()
+    } else {
     const pS = parseColor(adv.peakShadow, [6, 34, 124, 1])
     const pL = parseColor(adv.peakLight, [175, 198, 245, 1])
-    // Ghost silhouettes: the open field melts the range almost into the sky —
-    // a near-uniform, barely-darker band with only a hint of snow light.
-    const body = open ? mix(mix(pS, skyHor, 0.78), WHITE, 0.06) : pS
-    const rangeBottom = (open ? 0.62 : 0.52) + dy
+    const body = pS
+    const rangeBottom = 0.52 + dy
     const farPath = () => {
         g.beginPath()
         FAR_RANGE.forEach(([u, v], i) => (i ? g.lineTo(u, v + dy) : g.moveTo(u, v + dy)))
@@ -1856,21 +2066,14 @@ function buildGround(
     }
     farPath()
     const fg = g.createLinearGradient(0, 0.365 + dy, 0, 0.48 + dy)
-    if (open) {
-        fg.addColorStop(0, rgba(mix(body, WHITE, 0.05)))
-        fg.addColorStop(0.6, rgba(body))
-        fg.addColorStop(1, rgba(mix(body, [1, 14, 58, 1], 0.14)))
-    } else {
-        fg.addColorStop(0, rgba(body))
-        fg.addColorStop(0.45, rgba(mix(body, [1, 20, 86, 1], 0.7)))
-        fg.addColorStop(1, rgba(mix(body, [1, 14, 58, 1], 0.9)))
-    }
+    fg.addColorStop(0, rgba(body))
+    fg.addColorStop(0.45, rgba(mix(body, [1, 20, 86, 1], 0.7)))
+    fg.addColorStop(1, rgba(mix(body, [1, 14, 58, 1], 0.9)))
     g.fillStyle = fg
     g.fill()
     g.save()
     farPath()
     g.clip()
-    g.globalAlpha = open ? 0.4 : 1
     const lit = mix(pS, pL, 0.18)
     g.lineCap = "round"
     for (const [ai, fw, ns] of FAR_PEAKS) {
@@ -1932,7 +2135,7 @@ function buildGround(
     g.restore()
     g.beginPath()
     FAR_RANGE.forEach(([u, v], i) => (i ? g.lineTo(u, v + dy) : g.moveTo(u, v + dy)))
-    g.strokeStyle = rgba(mix(skyHor, WHITE, 0.35), open ? 0.18 : 0.55)
+    g.strokeStyle = rgba(mix(skyHor, WHITE, 0.35), 0.55)
     g.lineWidth = px * 1.1
     g.stroke()
 
@@ -2191,10 +2394,9 @@ function buildGround(
     items.sort((a, b) => a.v - b.v)
 
     const glowA = 0.05 * glowK
-    // Aerial perspective by world-depth: z runs 0 (far, at the meadow edge) to
-    // zMax (near viewer); far elements dissolve toward the haze colour by an
-    // exp falloff on distance-from-viewer. Bake-time only: no per-frame cost.
-    const airAtZ = (z: number) => aerialK * (1 - Math.exp(-Math.max(0, zMax - z) * 2.4))
+    // Aerial perspective concentrated near the far horizon so foreground & midground
+    // stay vibrant Studio Ghibli emerald while distant blades dissolve cleanly into mist.
+    const airAtZ = (z: number) => aerialK * Math.pow(clamp(1 - z / Math.max(0.08, zMax * 0.5), 0, 1), 2.15)
     // Baked items nearer than the desk land on a second canvas so the desk can
     // slot between the two layers in the per-frame depth order.
     const cF = deskV < Infinity ? makeCanvas(c.width, c.height) : null
@@ -2292,21 +2494,24 @@ function buildGround(
         v1: 0.51 + dy + 0.03,
     }
     if (cBox.v0 < gBox.v0) cBox.v0 = gBox.v0
-    const cw = Math.max(1, (cBox.u1 - cBox.u0) * r),
-        ch = Math.max(1, (cBox.v1 - cBox.v0) * r)
+    // Distant horizon carpet dots are naturally soft — 0.65× ground res keeps
+    // all 3 carpet canvases strictly <=1536px wide and <3MB VRAM combined.
+    const rCarpet = Math.min(r * 0.65, 1536 / Math.max(0.01, cBox.u1 - cBox.u0))
+    const cw = Math.max(1, (cBox.u1 - cBox.u0) * rCarpet),
+        ch = Math.max(1, (cBox.v1 - cBox.v0) * rCarpet)
     const carpet = [0, 1, 2].map(() => makeCanvas(cw, ch))
     const cx = carpet.map((cv) => {
         const k = ctx2d(cv)
-        k.setTransform(r, 0, 0, r, -cBox.u0 * r, -cBox.v0 * r)
+        k.setTransform(rCarpet, 0, 0, rCarpet, -cBox.u0 * rCarpet, -cBox.v0 * rCarpet)
         return k
     })
 
     const nightC = clamp(adv.night / 100, 0, 1)
     const carpetSpecies: RGBA[] = [
-        mix([167, 139, 250, 1], fl, nightC * 0.65), // violet lupine
-        mix([244, 114, 182, 1], fl, nightC * 0.65), // pink cosmos
-        mix([245, 158, 11, 1], fl, nightC * 0.65),  // golden-orange poppy
-        mix([252, 253, 255, 1], [175, 235, 255, 1], nightC * 0.55), // white daisy
+        mix([156, 148, 232, 1], fl, nightC * 0.65), // periwinkle-lavender lupine
+        mix([248, 174, 210, 1], fl, nightC * 0.65), // blush-pink cosmos
+        mix([250, 184, 36, 1], fl, nightC * 0.65),  // sunlit marigold poppy
+        mix([254, 254, 255, 1], [175, 235, 255, 1], nightC * 0.55), // pure white daisy
     ]
     const perU = (adv.carpetCount / 1.5) * 1.65
     for (let ti = Math.floor(cBox.u0 / TILE); ti * TILE < cBox.u1; ti++) {
@@ -2422,10 +2627,14 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         const root = rootRef.current
         const canvas = canvasRef.current
         if (!root || !canvas) return
-        const ctx = canvas.getContext("2d")
+        // Use CPU-backed Canvas2D (willReadFrequently) so the meadow never competes
+        // with the live WebGL2 PhotoSky context for Chromium GPU SharedImage pools
+        // or suffers silent GPU surface eviction across Windows ANGLE / macOS Metal.
+        const ctx = canvas.getContext("2d", { willReadFrequently: true })
         if (!ctx) return
         const reduce = !!window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
+        let disposed = false
         let W = 0,
             H = 0,
             dpr = 1,
@@ -2493,6 +2702,8 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             frot = new Float32Array(0),
             fr = new Float32Array(0)
         let spriteKey = ""
+        let spriteAtlas: HTMLCanvasElement | null = null
+        let heroAtlas: HTMLCanvasElement | null = null
         let glowSpr: HTMLCanvasElement | null = null
         let lightSpr: HTMLCanvasElement | null = null
         let lightKey = ""
@@ -2531,7 +2742,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             deskImgW = 0,
             deskImgH = 0
         const loadDesk = (src: string) => {
-            if (deskImgKey === src) return
+            if (disposed || deskImgKey === src) return
             deskImgKey = src
             deskLoaded = false
             deskBake = null
@@ -2539,6 +2750,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             const im = new Image()
             im.decoding = "async"
             im.onload = () => {
+                if (disposed || deskImg !== im) return
                 deskLoaded = true
                 deskBakeKey = ""
                 dirtyRef.current = true
@@ -2562,15 +2774,25 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         const grainPattern = ctx.createPattern(tile, "repeat")
 
         const sizeCanvas = () => {
-            kFull = Math.min(dpr * clamp(shown, 1, 2), Math.sqrt(4.2e6 / Math.max(1, W * H)))
+            kFull = Math.max(
+                0.5,
+                Math.min(
+                    dpr * clamp(shown, 1, 2),
+                    1.5,
+                    Math.sqrt(2.2e6 / Math.max(1, W * H)),
+                    2048 / Math.max(1, W),
+                )
+            )
             const k = kFull * quality
             const bw = Math.max(1, Math.round(W * k)),
                 bh = Math.max(1, Math.round(H * k))
             if (canvas.width !== bw || canvas.height !== bh) {
                 canvas.width = bw
                 canvas.height = bh
-                back.width = bw
-                back.height = bh
+                if (valsRef.current.sky) {
+                    back.width = bw
+                    back.height = bh
+                }
                 backDirty = true
             }
             kBuf = bw / W
@@ -2631,7 +2853,9 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         }
         const onScroll = () => {
             rectDirty = true
-            if (onScreen && (!heroClock.active || heroClock.p < 0.985)) wake()
+            // Schedule a wake check unconditionally when onScreen so scrolling
+            // back to the hero never misses a beat while heroClock.p updates in rAF.
+            if (onScreen && !document.hidden && !raf) raf = requestAnimationFrame(frame)
         }
         root.addEventListener("pointermove", onMove)
         root.addEventListener("pointerenter", onMove)
@@ -2643,6 +2867,9 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         const onVis = () => wake()
         document.addEventListener("visibilitychange", onVis)
 
+        const onLost = (e: Event) => {
+            e.preventDefault()
+        }
         const onRestored = () => {
             spriteKey = ""
             layerKey = ""
@@ -2651,6 +2878,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             sizeDirty = true
             wake()
         }
+        canvas.addEventListener("contextlost", onLost)
         canvas.addEventListener("contextrestored", onRestored)
 
         const ensureScene = (v: Vals, adv: Adv, S: number, box: Box) => {
@@ -2670,7 +2898,8 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             const fs = v.scale / 100
             const nightStep = Math.round(clamp(adv.night / 100, 0, 1) * 5) / 5
             const sk = [v.flowerColor, adv.squash, adv.defocus, v.glow, adv.glowSize, nightStep].join("|")
-            if (sk !== spriteKey) {
+            const atlasMissing = !spriteAtlas || spriteAtlas.width === 0 || spriteAtlas.height === 0 || !variants.length
+            if (sk !== spriteKey || atlasMissing) {
                 palette = speciesPalette(0, fl, 0, nightStep)
 
                 const sq = clamp(adv.squash / 100, 0.15, 0.97)
@@ -2687,15 +2916,15 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                             (74 + 10 * R()) * DEG,
                             sp
                         )
-                        const sharp100 = flowerSprite(100, pose, palS, 0)
+                        const sharpMain = flowerSprite(72, pose, palS, 0)
                         variants.push([
-                            flowerSprite(28, { ...pose, core: 0.65 }, palFarS, 0),
-                            flowerSprite(56, pose, palS, 0),
-                            sharp100,
-                            blurFromSprite(sharp100, 3.5 * blurK),
-                            blurFromSprite(sharp100, 7.5 * blurK),
+                            flowerSprite(24, { ...pose, core: 0.65 }, palFarS, 0),
+                            flowerSprite(44, pose, palS, 0),
+                            sharpMain,
+                            blurFromSprite(sharpMain, 3.0 * blurK),
+                            blurFromSprite(sharpMain, 6.2 * blurK),
                             flowerSprite(
-                                16,
+                                14,
                                 { ...pose, core: 0.55 },
                                 palFarS,
                                 0,
@@ -2751,7 +2980,16 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                     bp.core = 0.4
                     return flowerSprite(rs, bp, speciesPalette(3, fl), rs < 12 ? 0.6 : 0)
                 })
-                packAtlas([...variants.flat(), glowS, ...blossomSpr, ...propSpr])
+                const nextAtlas = packAtlas([...variants.flat(), glowS, ...blossomSpr, ...propSpr])
+                deferReleaseCanvas(spriteAtlas)
+                spriteAtlas = nextAtlas
+                // Re-create standalone glowSpr for buildGround so it stays independent of the atlas
+                glowSpr = radialSprite(mix(fl, [70, 200, 255, 1], 0.3), [
+                    [0, 0.75],
+                    [0.45, 0.3],
+                    [0.85, 0.06],
+                    [1, 0],
+                ])
                 // Commit the key only after a clean bake so a failed bake retries.
                 spriteKey = sk
                 spriteVer++
@@ -2784,7 +3022,6 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 L && box.u0 >= L.box.u0 && box.u1 <= L.box.u1 && box.v0 >= L.box.v0 && box.v1 <= L.box.v1
             const resOk = L && res / L.res > 0.8 && res / L.res < 1.25
             if (L && inside && resOk && lk === layerKey) return
-            layerKey = lk
             backDirty = true
 
             const pu = (box.u1 - box.u0) * 0.15,
@@ -2822,6 +3059,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 deskV
             )
             const can = adv.canopy > 0 ? buildCanopy(bb, adv.canopyAnchor.fx, adv.canopyAnchor.fy, adv, adv.seed) : null
+            const prevLayers = layers
             layers = {
                 box: bb,
                 res,
@@ -2833,6 +3071,14 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 carpetBox: gr.carpetBox,
                 canopy: can ? paintCanopy(can, adv, res, canopyCols ?? { base: [236, 214, 246, 1], lite: [246, 234, 252, 1], dark: [64, 46, 84, 1], eye: [128, 84, 150, 1], stam: [244, 232, 250, 1] }) : null,
                 canopyBox: can ? can.box : null,
+            }
+            // Commit layerKey only after buildGround succeeds so transient failures retry cleanly.
+            layerKey = lk
+            if (prevLayers) {
+                deferReleaseCanvas(prevLayers.ground)
+                deferReleaseCanvas(prevLayers.groundFront)
+                prevLayers.carpet.forEach((cc) => deferReleaseCanvas(cc))
+                deferReleaseCanvas(prevLayers.canopy)
             }
 
             const stk = [adv.seed, adv.milkyWidth, bb.u0.toFixed(2), bb.u1.toFixed(2), bb.v0.toFixed(2)].join("|")
@@ -2912,6 +3158,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 g.fillRect(0, padY, wp, hp)
                 g.globalCompositeOperation = "source-over"
             }
+            deferReleaseCanvas(deskBake)
             deskBake = c
             deskPadX = padX
             deskPadY = padY
@@ -2929,7 +3176,7 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             const kk = Math.pow(2, sc / 4)
             heroSpr = HEROES.map(([, , r, pitch, , blur], i) => {
                 const Rdev = r * PX * fs * (pitch < 20 ? 1.25 : 1.12) * kk
-                const rs = Math.min(blur > 0 ? 110 : 200, Math.max(16, Rdev))
+                const rs = Math.min(blur > 0 ? 92 : 120, Math.max(16, Rdev))
                 const R = rng(1000 + i * 17)
                 const pose = makePose(R, pitch * DEG, 78 * DEG)
                 pose.width = 0.3
@@ -2941,20 +3188,24 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 }
                 return flowerSprite(rs, pose, palette as Palette, ((blur * blurK) / r) * rs)
             })
-            packAtlas(heroSpr)
+            const nextHeroAtlas = packAtlas(heroSpr)
+            deferReleaseCanvas(heroAtlas)
+            heroAtlas = nextHeroAtlas
         }
 
         let animating = false
         const isHeroOccluded = () => heroClock.active && heroClock.p >= 0.985
         const wake = () => {
-            if (!raf && onScreen && !document.hidden && !isHeroOccluded()) raf = requestAnimationFrame(frame)
+            if (!disposed && !raf && onScreen && !document.hidden && !isHeroOccluded()) raf = requestAnimationFrame(frame)
         }
         wakeRef.current = () => {
+            if (disposed) return
             dirtyRef.current = true
             wake()
         }
         const frame = (now: number) => {
             raf = 0
+            if (disposed) return
 
             if (lastTick >= 0) cadence = Math.min(Math.min(100, now - lastTick), cadence + 0.2)
             lastTick = now
@@ -3038,12 +3289,13 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             }
         }
         const drawNow = () => {
-            if (!W || !H) return
+            if (disposed || !W || !H) return
             draw(0)
             wake()
         }
 
         const draw = (dt: number) => {
+            if (disposed) return
             const v = valsRef.current
             const adv = v.advanced
             if (dirtyRef.current) backDirty = true
@@ -3106,23 +3358,26 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 box.v1 = Math.max(box.v1, tmp.v)
             }
             ensureScene(v, adv, S, box)
-            const Lr = layers as Layers
+            if (!layers || !variants.length) return
+            const Lr = layers
             const k = kBuf
-            const sk4 = Math.round(k * 4) / 4
-            if (sk4 !== starK) {
-                starK = sk4
-                starSpr = starSprites(sk4)
-                backDirty = true
-            }
-            if (!glowCore || glowCoreKey !== adv.milkyColor) {
-                glowCoreKey = adv.milkyColor
-                glowCore = radialSprite(mix(parseColor(adv.milkyColor, [185, 208, 255, 1]), [120, 200, 255, 1], 0.4), [
-                    [0, 0.55],
-                    [0.25, 0.22],
-                    [0.6, 0.05],
-                    [1, 0],
-                ])
-                backDirty = true
+            if (v.sky) {
+                const sk4 = Math.round(k * 4) / 4
+                if (sk4 !== starK) {
+                    starK = sk4
+                    starSpr = starSprites(sk4)
+                    backDirty = true
+                }
+                if (!glowCore || glowCoreKey !== adv.milkyColor) {
+                    glowCoreKey = adv.milkyColor
+                    glowCore = radialSprite(mix(parseColor(adv.milkyColor, [185, 208, 255, 1]), [120, 200, 255, 1], 0.4), [
+                        [0, 0.55],
+                        [0.25, 0.22],
+                        [0.6, 0.05],
+                        [1, 0],
+                    ])
+                    backDirty = true
+                }
             }
             const ma = k * S * ca,
                 mb = k * S * sa,
@@ -3235,8 +3490,19 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
 
             const paintBackdrop = (g: CanvasRenderingContext2D) => {
                 const layer = (img: HTMLCanvasElement, b: Box, du = 0, dv = 0) => {
-                    g.setTransform(ma, mb, mc, md, me, mf)
-                    g.drawImage(img, b.u0 + du, b.v0 + dv, b.u1 - b.u0, b.v1 - b.v0)
+                    if (ang === 0) {
+                        g.setTransform(1, 0, 0, 1, 0, 0)
+                        g.drawImage(
+                            img,
+                            X(b.u0 + du, b.v0 + dv),
+                            Y(b.u0 + du, b.v0 + dv),
+                            (b.u1 - b.u0) * k * S,
+                            (b.v1 - b.v0) * k * S,
+                        )
+                    } else {
+                        g.setTransform(ma, mb, mc, md, me, mf)
+                        g.drawImage(img, b.u0 + du, b.v0 + dv, b.u1 - b.u0, b.v1 - b.v0)
+                    }
                 }
                 // Sky, Milky Way, stars and clouds — skipped when `sky` is off.
                 const paintSky = (SL: SkyLayers) => {
@@ -3356,8 +3622,18 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 }
                 g.globalAlpha = 1
             }
-            {
+            if (!v.sky) {
+                // Sky is composited separately by PhotoSky; drawing the pre-baked
+                // ground + 3 carpet layers directly onto `ctx` avoids a redundant
+                // full-screen GPU back-buffer allocation & blit every frame.
+                paintBackdrop(ctx)
+            } else {
                 backAge += dt
+                if (back.width !== cW || back.height !== cH) {
+                    back.width = cW
+                    back.height = cH
+                    backDirty = true
+                }
                 if (backDirty || (animating && backAge >= (curFps >= 60 ? 0.031 : 0.064))) {
                     bctx.setTransform(1, 0, 0, 1, 0, 0)
                     bctx.globalAlpha = 1
@@ -3596,8 +3872,19 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
                 const Lf = layers as Layers
                 if (Lf.groundFront) {
                     const b = Lf.groundBox
-                    ctx.setTransform(ma, mb, mc, md, me, mf)
-                    ctx.drawImage(Lf.groundFront, b.u0, b.v0, b.u1 - b.u0, b.v1 - b.v0)
+                    if (ang === 0) {
+                        ctx.setTransform(1, 0, 0, 1, 0, 0)
+                        ctx.drawImage(
+                            Lf.groundFront,
+                            X(b.u0, b.v0),
+                            Y(b.u0, b.v0),
+                            (b.u1 - b.u0) * k * S,
+                            (b.v1 - b.v0) * k * S,
+                        )
+                    } else {
+                        ctx.setTransform(ma, mb, mc, md, me, mf)
+                        ctx.drawImage(Lf.groundFront, b.u0, b.v0, b.u1 - b.u0, b.v1 - b.v0)
+                    }
                 }
             }
             // Canopy hangs over the desk (in front of it) — it reads the same
@@ -3741,11 +4028,29 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             }
         }
 
-        wake()
+        // Eager initial dimension seed so iframe/first-paint never waits on ResizeObserver
+        {
+            const cr = root.getBoundingClientRect()
+            if (cr.width > 0 && cr.height > 0 && (!W || !H)) {
+                W = cr.width
+                H = cr.height
+                dpr = Math.min(2, window.devicePixelRatio || 1)
+                measure()
+                sizeDirty = true
+                drawNow()
+            } else {
+                wake()
+            }
+        }
         return () => {
+            disposed = true
             if (raf) cancelAnimationFrame(raf)
             raf = 0
             wakeRef.current = () => {}
+            if (deskImg) {
+                deskImg.onload = null
+                deskImg = null
+            }
             ro.disconnect()
             io.disconnect()
             root.removeEventListener("pointermove", onMove)
@@ -3756,7 +4061,34 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             window.removeEventListener("pointercancel", onUp)
             window.removeEventListener("scroll", onScroll, { capture: true })
             document.removeEventListener("visibilitychange", onVis)
+            canvas.removeEventListener("contextlost", onLost)
             canvas.removeEventListener("contextrestored", onRestored)
+            releaseCanvas(spriteAtlas)
+            releaseCanvas(heroAtlas)
+            releaseCanvas(glowSpr)
+            releaseCanvas(glowCore)
+            releaseCanvas(lightSpr)
+            releaseCanvas(deskBake)
+            releaseCanvas(back)
+            if (layers) {
+                releaseCanvas(layers.ground)
+                releaseCanvas(layers.groundFront)
+                layers.carpet.forEach((cc) => releaseCanvas(cc))
+                releaseCanvas(layers.canopy)
+            }
+            spriteKey = ""
+            layerKey = ""
+            variants = []
+            propSpr = []
+            blossomSpr = []
+            heroSpr = []
+            spriteAtlas = null
+            heroAtlas = null
+            glowSpr = null
+            glowCore = null
+            lightSpr = null
+            deskBake = null
+            layers = null
         }
     }, [])
 

@@ -17,6 +17,7 @@ import {
   useSkyTime,
   useSyncState,
 } from "@/lib/useTimeOfDay";
+import { computeUiPalette } from "@/lib/lighting";
 import {
   PIN_DIAL_GEOM,
   chromaticTickColor,
@@ -72,7 +73,7 @@ const TICK_ANGLES = Array.from({ length: TICK_COUNT }, (_, i) => {
     u,
     angle: ANGLE_START + u * (ANGLE_END - ANGLE_START),
     color: chromaticTickColor(u),
-    major: i % 8 === 0 || i === TICK_COUNT - 1,
+    major: i % 6 === 0 || i === TICK_COUNT - 1,
   };
 });
 
@@ -162,7 +163,6 @@ export function ThermalSkyClock({
   const svgRef = useRef<SVGSVGElement>(null);
   const tickRefs = useRef<(SVGLineElement | null)[]>([]);
   const orbGroupRef = useRef<SVGGElement>(null);
-  const dragCueRef = useRef<HTMLDivElement>(null);
 
   const targetAngle = useMemo(() => hourToPinAngle(t), [t]);
   const targetAngleRef = useRef(targetAngle);
@@ -179,6 +179,7 @@ export function ThermalSkyClock({
   });
 
   const atmo = useMemo(() => pinDialAtmosphere(t), [t]);
+  const dayMix = useMemo(() => (computeUiPalette(t).isLight ? 1 : 0), [t]);
   const phase = useMemo(() => solarPhaseMeta(t), [t]);
   const formatted = formatTime(t);
   const isDay = phase.isDay;
@@ -232,24 +233,25 @@ export function ThermalSkyClock({
     return () => el.removeEventListener("wheel", onWheel);
   }, [isExpanded]);
 
-  // Paint spring-interpolated 96-tick chromatic arc + comet orb directly to SVG DOM
-  const paintArcAt = useCallback((angDeg: number, theme: "light" | "dark") => {
+  // Paint spring-interpolated 68-tick 180° chromatic arc + comet orb directly to SVG DOM
+  const paintArcAt = useCallback((angDeg: number, dayFactor: number) => {
     const activeU = (angDeg - ANGLE_START) / (ANGLE_END - ANGLE_START);
-    const inactiveStroke =
-      theme === "light" ? "rgba(18, 28, 45, 0.14)" : "rgba(255, 255, 255, 0.14)";
-    const majorInactive =
-      theme === "light" ? "rgba(18, 28, 45, 0.24)" : "rgba(255, 255, 255, 0.24)";
+    const r = Math.round(255 + (18 - 255) * dayFactor);
+    const g = Math.round(255 + (28 - 255) * dayFactor);
+    const b = Math.round(255 + (45 - 255) * dayFactor);
+    const inactiveStroke = `rgba(${r}, ${g}, ${b}, 0.16)`;
+    const majorInactive = `rgba(${r}, ${g}, ${b}, 0.27)`;
 
     for (let i = 0; i < TICK_COUNT; i++) {
       const line = tickRefs.current[i];
       if (!line) continue;
       const tk = TICK_ANGLES[i];
       const dist = Math.abs(tk.u - activeU);
-      const wave = Math.exp(-(dist * dist) / 0.0014);
+      const wave = Math.exp(-(dist * dist) / 0.0016);
       const passed = tk.u <= activeU + 0.004;
 
-      const innerR = ARC_R - (tk.major ? 14 : 9) - wave * 5;
-      const outerR = ARC_R + (tk.major ? 4 : 0) + wave * 11;
+      const innerR = ARC_R - (tk.major ? 14 : 9) - wave * 4;
+      const outerR = ARC_R + (tk.major ? 3.5 : 0) + wave * 8.5;
       const rad = (tk.angle - 90) * DEG_TO_RAD;
       const c = Math.cos(rad);
       const s = Math.sin(rad);
@@ -261,8 +263,8 @@ export function ThermalSkyClock({
 
       if (passed || wave > 0.35) {
         line.setAttribute("stroke", tk.color);
-        line.setAttribute("stroke-opacity", (0.58 + wave * 0.42).toFixed(2));
-        line.setAttribute("stroke-width", (1.6 + wave * 1.45).toFixed(2));
+        line.setAttribute("stroke-opacity", (0.68 + wave * 0.32).toFixed(2));
+        line.setAttribute("stroke-width", (1.7 + wave * 1.25).toFixed(2));
       } else {
         line.setAttribute("stroke", tk.major ? majorInactive : inactiveStroke);
         line.setAttribute("stroke-opacity", "1");
@@ -270,27 +272,18 @@ export function ThermalSkyClock({
       }
     }
 
-    // Position glowing comet orb on inner orbital track
+    // Position glowing sun/moon orb cleanly along the inner 180° orbital track
     const orbRad = (angDeg - 90) * DEG_TO_RAD;
-    const orbTrackR = ARC_R - 30;
+    const orbTrackR = ARC_R - 23;
     const ox = CX + Math.cos(orbRad) * orbTrackR;
     const oy = CY + Math.sin(orbRad) * orbTrackR;
     if (orbGroupRef.current) {
       orbGroupRef.current.setAttribute("transform", `translate(${ox.toFixed(2)} ${oy.toFixed(2)})`);
     }
-
-    // Position `< drag >` tag neatly above the comet orb
-    if (dragCueRef.current) {
-      const cueTrackR = ARC_R - 4;
-      const cxPct = ((CX + Math.cos(orbRad) * cueTrackR) / VB_W) * 100;
-      const cyPct = ((CY + Math.sin(orbRad) * cueTrackR) / VB_H) * 100;
-      dragCueRef.current.style.left = `${cxPct.toFixed(2)}%`;
-      dragCueRef.current.style.top = `${Math.max(12, cyPct - 9).toFixed(2)}%`;
-    }
   }, []);
 
-  const themeRef = useRef(atmo.theme);
-  themeRef.current = atmo.theme;
+  const dayMixRef = useRef(dayMix);
+  dayMixRef.current = dayMix;
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -305,19 +298,19 @@ export function ThermalSkyClock({
         sp.angle += diff * 0.42;
         sp.vel *= 0.4;
       } else {
-        // Tactile PinUI damped spring (k=0.16, d=0.76)
+        // Tactile damped spring (k=0.16, d=0.76)
         sp.vel = (sp.vel + diff * 0.16) * 0.76;
         sp.angle += sp.vel;
       }
 
-      paintArcAt(sp.angle, themeRef.current);
+      paintArcAt(sp.angle, dayMixRef.current);
 
       if (Math.abs(target - sp.angle) > 0.04 || Math.abs(sp.vel) > 0.04) {
         sp.raf = requestAnimationFrame(step);
       } else {
         sp.angle = target;
         sp.vel = 0;
-        paintArcAt(sp.angle, themeRef.current);
+        paintArcAt(sp.angle, dayMixRef.current);
       }
     };
 
@@ -326,14 +319,14 @@ export function ThermalSkyClock({
       if (sp.raf) cancelAnimationFrame(sp.raf);
       sp.raf = 0;
     };
-  }, [isExpanded, targetAngle, atmo.theme, paintArcAt]);
+  }, [isExpanded, targetAngle, dayMix, paintArcAt]);
 
   // Snap spring immediately when opening
   useEffect(() => {
     if (isExpanded) {
       springRef.current.angle = targetAngleRef.current;
       springRef.current.vel = 0;
-      paintArcAt(targetAngleRef.current, themeRef.current);
+      paintArcAt(targetAngleRef.current, dayMixRef.current);
     }
   }, [isExpanded, paintArcAt]);
 
@@ -384,10 +377,10 @@ export function ThermalSkyClock({
   };
 
   const horizonPath = useMemo(() => {
-    const x1 = CX - ARC_R * 0.84;
-    const x2 = CX + ARC_R * 0.84;
-    const y = CY + 22;
-    return `M ${x1.toFixed(1)} ${y} Q ${CX} ${y - 16} ${x2.toFixed(1)} ${y}`;
+    const x1 = CX - ARC_R - 14;
+    const x2 = CX + ARC_R + 14;
+    const y = CY + 13;
+    return `M ${x1.toFixed(1)} ${y} Q ${CX} ${y - 14} ${x2.toFixed(1)} ${y}`;
   }, []);
 
   return (
@@ -510,12 +503,8 @@ export function ThermalSkyClock({
             {/* Kinetic Solar Phase Label */}
             <PhaseTitle label={phase.label} />
 
-            {/* 96-Tick Chromatic Sweep + Draggable Comet Orb */}
+            {/* 180° Half-Dome Chromatic Comb + Nestled Digital Time Inside the Dome */}
             <div className="pdial__arc-stage">
-              <div ref={dragCueRef} className="pdial__drag-cue" aria-hidden="true">
-                ‹ drag ›
-              </div>
-
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -533,7 +522,7 @@ export function ThermalSkyClock({
                 onPointerCancel={handlePointerUp}
                 onKeyDown={handleKeyDown}
               >
-                {/* 96 Spring-Responsive Chromatic Ticks */}
+                {/* 68 Spring-Responsive Chromatic Ticks */}
                 <g aria-hidden="true">
                   {TICK_ANGLES.map((_, idx) => (
                     <line
@@ -559,22 +548,22 @@ export function ThermalSkyClock({
                   strokeLinecap="round"
                 />
 
-                {/* Glowing Comet Solar/Lunar Thumb */}
+                {/* Glowing Sun / Moon Orbital Thumb */}
                 <g ref={orbGroupRef} className="pdial__orb-group">
-                  <circle cx="0" cy="0" r="20" fill={atmo.orbColor} opacity="0.22" />
+                  <circle cx="0" cy="0" r="17" fill={atmo.orbColor} opacity="0.24" />
                   <circle
                     cx="0"
                     cy="0"
-                    r="11"
+                    r="9.5"
                     fill={atmo.orbColor}
                     stroke="#ffffff"
-                    strokeWidth="2.4"
+                    strokeWidth="2.2"
                   />
-                  <circle cx="0" cy="0" r="4" fill={atmo.orbCore} />
+                  <circle cx="0" cy="0" r="3.2" fill={atmo.orbCore} />
                 </g>
               </svg>
 
-              {/* Spring-Rolling Split Digital Readout */}
+              {/* Spring-Rolling Split Digital Readout nestled inside the 180° dome */}
               <div className="pdial__readout" aria-label={`Selected solar time ${formatted}`}>
                 {formatted.split("").map((ch, idx) => (
                   <RollingDigit key={idx} value={ch} />

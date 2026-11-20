@@ -68,20 +68,30 @@ export function CelestialNight({
       {/* ATMOSPHERIC NORTHERN AURORA BOREALIS RIBBONS                   */}
       {/* ============================================================== */}
       {isAuroraActive && (
-        <div className="aurora-curtains absolute top-0 inset-x-0 h-[45vh] opacity-60 mix-blend-screen transition-opacity duration-1000">
-          {/* Emerald Green Primary Ribbon */}
+        <div className="aurora-curtains absolute top-0 inset-x-0 h-[45vh] opacity-55 mix-blend-screen transition-opacity duration-1000">
+          {/* Soft Emerald Primary Ribbon (zero-blur radial gradient) */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-transparent via-[#10b981]/25 to-transparent blur-3xl animate-pulse"
-            style={{ animationDuration: "6s" }}
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(62% 55% at 50% 24%, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.06) 52%, transparent 80%)",
+            }}
           />
-          {/* Violet / Indigo Secondary Ribbon */}
+          {/* Soft Violet / Indigo Secondary Ribbon */}
           <div
-            className="absolute -top-10 inset-x-0 h-[35vh] bg-gradient-to-r from-transparent via-[#8b5cf6]/20 to-transparent blur-2xl animate-pulse"
-            style={{ animationDuration: "9s" }}
+            className="absolute -top-8 inset-x-0 h-[36vh]"
+            style={{
+              background:
+                "radial-gradient(58% 60% at 32% 30%, rgba(139, 92, 246, 0.18) 0%, transparent 74%)",
+            }}
           />
-          {/* Cyan Ionized Shimmer */}
+          {/* Soft Cyan Ionized Shimmer */}
           <div
-            className="absolute top-5 left-1/4 right-1/4 h-[25vh] bg-gradient-to-b from-[#06b6d4]/15 to-transparent blur-xl"
+            className="absolute top-4 inset-x-0 h-[28vh]"
+            style={{
+              background:
+                "radial-gradient(46% 54% at 68% 36%, rgba(6, 182, 212, 0.14) 0%, transparent 72%)",
+            }}
           />
         </div>
       )}
