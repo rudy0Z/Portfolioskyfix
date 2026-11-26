@@ -557,7 +557,7 @@ const SPECIES = [
     { petals: 5, width: 0.48, curl: -0.12, open: 1.08 }, // 2: golden-orange California poppy — satin cup
     { petals: 13, width: 0.16, curl: 0.02, open: 1.44 }, // 3: crisp white meadow daisy — radiating rays
 ]
-const POSES_PER_SPECIES = 3
+const POSES_PER_SPECIES = 5
 interface Palette {
     tip: string
     deep: string
@@ -613,105 +613,143 @@ function makePose(R: () => number, pitch: number, open: number, sp = 0): Pose {
 }
 
 function paintLupine(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
-    // Tall slender Studio Ghibli periwinkle-lavender conical lupine raceme spire
-    const tiers = 8
-    const spireH = R * 1.62
-    const baseY = R * 0.48
-    // Delicate viridian central stem
-    g.strokeStyle = "rgba(38, 96, 52, 0.88)"
-    g.lineWidth = Math.max(1.1, R * 0.052)
+    // Silky hand-painted Studio Ghibli periwinkle-lavender conical plume (zero vector outlines)
+    const spireH = R * 1.72
+    const baseY = R * 0.52
+    const tipY = baseY - spireH
+    const bendX = p.jit[0] * R * 0.14
+
+    // Subtle soft emerald stem tucked beneath base
+    g.strokeStyle = "rgba(32, 86, 46, 0.82)"
+    g.lineWidth = Math.max(1.0, R * 0.045)
     g.lineCap = "round"
     g.beginPath()
-    g.moveTo(0, baseY + R * 0.14)
-    g.lineTo(0, baseY - spireH * 0.94)
+    g.moveTo(0, baseY + R * 0.16)
+    g.quadraticCurveTo(bendX * 0.4, baseY - spireH * 0.35, bendX * 0.7, tipY + spireH * 0.25)
     g.stroke()
 
-    for (let t = 0; t < tiers; t++) {
-        const u = t / (tiers - 1) // 0 = broad base, 1 = delicate conical tip
-        const y = baseY - u * spireH
-        const spread = R * (0.34 * (1 - u * 0.78) + 0.045)
-        const count = u > 0.74 ? 2 : u > 0.34 ? 3 : 4
-        for (let j = 0; j < count; j++) {
-            const frac = (j / (count - 1)) * 2 - 1
-            const jit = p.jit[(t * 3 + j) % 24]
-            const fx = frac * spread + jit * R * 0.038
-            const fy = y + Math.abs(frac) * R * 0.065 + jit * R * 0.024
-            const rx = R * (0.165 - u * 0.072)
-            const ry = R * (0.118 - u * 0.044)
-            const rot = frac * 0.44 + jit * 0.12
+    // 1. Cohesive soft conical plume silhouette body (gives unified painterly candle form)
+    const bodyGrad = g.createLinearGradient(-R * 0.36, tipY, R * 0.34, baseY)
+    bodyGrad.addColorStop(0, pal.base)
+    bodyGrad.addColorStop(0.32, pal.mid)
+    bodyGrad.addColorStop(0.72, pal.tip)
+    bodyGrad.addColorStop(1, pal.deep)
+    g.fillStyle = bodyGrad
+    g.beginPath()
+    g.moveTo(bendX, tipY - R * 0.05)
+    g.bezierCurveTo(
+        bendX - R * 0.18,
+        tipY + spireH * 0.26,
+        -R * 0.42,
+        baseY - spireH * 0.36,
+        -R * 0.3,
+        baseY
+    )
+    g.quadraticCurveTo(0, baseY + R * 0.12, R * 0.3, baseY)
+    g.bezierCurveTo(
+        R * 0.4,
+        baseY - spireH * 0.36,
+        bendX + R * 0.18,
+        tipY + spireH * 0.26,
+        bendX,
+        tipY - R * 0.05
+    )
+    g.closePath()
+    g.fill()
 
-            const gr = g.createLinearGradient(fx - rx * 0.35, fy - ry, fx + rx * 0.25, fy + ry)
-            gr.addColorStop(0, u > 0.55 ? pal.base : pal.mid)
-            gr.addColorStop(0.55, pal.tip)
+    // 2. Layered gouache petal tufts (sunlit pale left -> soft violet right, zero hard strokes)
+    const tiers = 10
+    for (let t = 0; t < tiers; t++) {
+        const u = t / (tiers - 1)
+        const cx = bendX * u * u
+        const y = baseY - u * spireH * 0.94
+        const halfSpan = R * (0.33 * Math.pow(1 - u * 0.82, 0.88) + 0.04)
+        const count = u > 0.78 ? 2 : 3
+        for (let j = 0; j < count; j++) {
+            const frac = count === 2 ? (j === 0 ? -0.62 : 0.62) : j - 1
+            const jit = p.jit[(t * 3 + j) % 24]
+            const fx = cx + frac * halfSpan + jit * R * 0.045
+            const fy = y + Math.abs(frac) * R * 0.055 + jit * R * 0.025
+            const rx = R * (0.165 - u * 0.078)
+            const ry = R * (0.135 - u * 0.052)
+            const rot = frac * 0.36 + jit * 0.14
+
+            const sunSide = frac <= 0
+            const gr = g.createRadialGradient(-rx * 0.28, -ry * 0.32, rx * 0.08, 0, 0, Math.max(rx, ry) * 1.15)
+            gr.addColorStop(0, u > 0.52 || sunSide ? pal.base : pal.mid)
+            gr.addColorStop(0.58, sunSide ? pal.mid : pal.tip)
             gr.addColorStop(1, pal.deep)
 
             g.save()
             g.translate(fx, fy)
             g.rotate(rot)
+            g.globalAlpha = 0.86
             g.fillStyle = gr
             g.beginPath()
             g.ellipse(0, 0, rx, ry, 0, 0, TAU)
             g.fill()
-            g.strokeStyle = pal.edge
-            g.lineWidth = Math.max(0.55, R * 0.015)
-            g.stroke()
-            // Crisp cel-shaded sunlit upper hood highlight
-            g.fillStyle = "rgba(255, 255, 255, 0.36)"
-            g.beginPath()
-            g.ellipse(-rx * 0.18, -ry * 0.28, rx * 0.42, ry * 0.25, -0.15, 0, TAU)
-            g.fill()
             g.restore()
         }
     }
-    // Delicate pale lavender conical crown bud
-    g.fillStyle = pal.base
+
+    // 3. Soft luminous sunlit left-edge brush sweep for painterly volume
+    g.save()
+    g.globalAlpha = 0.28
+    const sheen = g.createLinearGradient(-R * 0.24, tipY, -R * 0.06, baseY)
+    sheen.addColorStop(0, "rgba(255, 255, 255, 0.92)")
+    sheen.addColorStop(0.65, "rgba(236, 232, 255, 0.42)")
+    sheen.addColorStop(1, "rgba(220, 214, 255, 0)")
+    g.fillStyle = sheen
     g.beginPath()
-    g.ellipse(0, baseY - spireH - R * 0.055, R * 0.075, R * 0.125, 0, 0, TAU)
+    g.moveTo(bendX - R * 0.02, tipY)
+    g.bezierCurveTo(
+        bendX - R * 0.16,
+        tipY + spireH * 0.3,
+        -R * 0.34,
+        baseY - spireH * 0.3,
+        -R * 0.16,
+        baseY - R * 0.06
+    )
+    g.quadraticCurveTo(-R * 0.05, baseY - spireH * 0.45, bendX - R * 0.02, tipY)
+    g.closePath()
     g.fill()
-    g.strokeStyle = pal.edge
-    g.lineWidth = Math.max(0.5, R * 0.014)
-    g.stroke()
+    g.restore()
 }
 
 function paintCosmos(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
-    // Airy Studio Ghibli 8-petal notched blush-pink cosmos tilted gently in 3/4 view
+    // Airy gouache 8-petal pastel-rose cosmos (soft scalloped organic tips, zero dark outlines)
     const sqY = 0.56 + 0.42 * Math.cos(p.pitch)
     const count = 8
     g.save()
     g.scale(1, sqY)
     g.rotate(p.yaw)
     for (let i = 0; i < count; i++) {
-        const a = (i * TAU) / count + p.jit[i] * 0.07
-        const len = R * (0.9 + p.jit[(i + 5) % 24] * 0.09)
-        const w = len * 0.34
+        const a = (i * TAU) / count + p.jit[i] * 0.085
+        const len = R * (0.88 + p.jit[(i + 5) % 24] * 0.11)
+        const w = len * (0.36 + p.jit[(i + 11) % 24] * 0.03)
         g.save()
         g.rotate(a)
-        const gr = g.createLinearGradient(0, 0, 0, -len)
+        const gr = g.createLinearGradient(0, -R * 0.05, 0, -len)
         gr.addColorStop(0, pal.deep)
-        gr.addColorStop(0.28, pal.tip)
-        gr.addColorStop(0.72, pal.mid)
+        gr.addColorStop(0.24, pal.tip)
+        gr.addColorStop(0.66, pal.mid)
         gr.addColorStop(1, pal.base)
+        g.globalAlpha = 0.88 + (i % 2) * 0.1
         g.fillStyle = gr
         g.beginPath()
-        g.moveTo(0, -R * 0.06)
-        g.bezierCurveTo(-w * 0.65, -len * 0.35, -w, -len * 0.78, -w * 0.42, -len * 0.96)
-        g.lineTo(-w * 0.12, -len * 0.89)
-        g.lineTo(0, -len)
-        g.lineTo(w * 0.14, -len * 0.89)
-        g.lineTo(w * 0.42, -len * 0.96)
-        g.bezierCurveTo(w, -len * 0.78, w * 0.65, -len * 0.35, 0, -R * 0.06)
+        g.moveTo(0, -R * 0.05)
+        g.bezierCurveTo(-w * 0.72, -len * 0.32, -w * 1.04, -len * 0.76, -w * 0.46, -len * 0.95)
+        g.quadraticCurveTo(-w * 0.18, -len * 0.9, 0, -len * 0.99)
+        g.quadraticCurveTo(w * 0.18, -len * 0.9, w * 0.46, -len * 0.95)
+        g.bezierCurveTo(w * 1.04, -len * 0.76, w * 0.72, -len * 0.32, 0, -R * 0.05)
         g.closePath()
         g.fill()
-        g.strokeStyle = pal.edge
-        g.lineWidth = Math.max(0.55, R * 0.018)
-        g.stroke()
-        // Subtle delicate petal crease highlight
-        g.strokeStyle = "rgba(255, 255, 255, 0.32)"
-        g.lineWidth = Math.max(0.5, R * 0.016)
+
+        // Soft sunlit silk sheen inside the petal (replaces hard vector outline)
+        g.fillStyle = "rgba(255, 250, 253, 0.22)"
         g.beginPath()
-        g.moveTo(0, -len * 0.25)
-        g.lineTo(0, -len * 0.72)
-        g.stroke()
+        g.ellipse(0, -len * 0.62, w * 0.32, len * 0.24, 0, 0, TAU)
+        g.fill()
         g.restore()
     }
     g.restore()
@@ -719,40 +757,41 @@ function paintCosmos(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palet
 }
 
 function paintPoppy(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
-    // Sunlit golden-marigold 5-petal satin cupped California poppy
-    const sqY = 0.58 + 0.38 * Math.cos(p.pitch)
+    // Luminous Studio Ghibli California poppy: ruffled amber-gold satin cup + velvety dark center
+    const sqY = 0.56 + 0.4 * Math.cos(p.pitch)
     const count = 5
     g.save()
     g.scale(1, sqY)
     g.rotate(p.yaw)
     for (let i = 0; i < count; i++) {
-        const a = (i * TAU) / count + p.jit[i] * 0.09
-        const len = R * (0.86 + p.jit[(i + 7) % 24] * 0.08)
-        const w = len * 0.58
+        const a = (i * TAU) / count + p.jit[i] * 0.1
+        const len = R * (0.88 + p.jit[(i + 7) % 24] * 0.09)
+        const w = len * (0.64 + p.jit[(i + 13) % 24] * 0.05)
+        const isFront = i >= 2
         g.save()
         g.rotate(a)
-        const gr = g.createRadialGradient(0, -len * 0.25, R * 0.04, 0, -len * 0.55, len * 0.95)
+        const gr = g.createRadialGradient(0, -len * 0.18, R * 0.04, 0, -len * 0.52, len * 0.98)
         gr.addColorStop(0, pal.deep)
-        gr.addColorStop(0.38, pal.tip)
-        gr.addColorStop(0.78, pal.mid)
-        gr.addColorStop(1, pal.base)
+        gr.addColorStop(0.32, pal.tip)
+        gr.addColorStop(0.76, pal.mid)
+        gr.addColorStop(1, isFront ? pal.base : pal.mid)
+        g.globalAlpha = isFront ? 0.96 : 0.9
         g.fillStyle = gr
         g.beginPath()
         g.moveTo(0, 0)
-        g.bezierCurveTo(-w * 0.88, -len * 0.26, -w * 0.96, -len * 0.84, -w * 0.14, -len * 0.98)
-        g.quadraticCurveTo(0, -len * 1.03, w * 0.14, -len * 0.98)
-        g.bezierCurveTo(w * 0.96, -len * 0.84, w * 0.88, -len * 0.26, 0, 0)
+        g.bezierCurveTo(-w * 0.92, -len * 0.22, -w * 1.02, -len * 0.8, -w * 0.26, -len * 0.96)
+        g.quadraticCurveTo(0, -len * 1.04, w * 0.26, -len * 0.96)
+        g.bezierCurveTo(w * 1.02, -len * 0.8, w * 0.92, -len * 0.22, 0, 0)
         g.closePath()
         g.fill()
-        g.strokeStyle = pal.edge
-        g.lineWidth = Math.max(0.55, R * 0.018)
-        g.stroke()
-        // Warm sunlit rim sheen along upper outer edge
-        g.strokeStyle = "rgba(255, 252, 224, 0.44)"
-        g.lineWidth = Math.max(0.6, R * 0.022)
-        g.beginPath()
-        g.arc(0, -len * 0.54, len * 0.44, -Math.PI * 0.78, -Math.PI * 0.22)
-        g.stroke()
+
+        // Delicate sunlit translucent satin fold on upper petal curve
+        if (isFront) {
+            g.fillStyle = "rgba(255, 250, 210, 0.24)"
+            g.beginPath()
+            g.ellipse(0, -len * 0.7, w * 0.42, len * 0.18, 0, 0, TAU)
+            g.fill()
+        }
         g.restore()
     }
     g.restore()
@@ -760,33 +799,31 @@ function paintPoppy(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palett
 }
 
 function paintDaisy(g: CanvasRenderingContext2D, R: number, p: Pose, pal: Palette) {
-    // Crisp Studio Ghibli 15-petal pointed pure-white meadow daisy with raised ochre dome
-    const sqY = 0.54 + 0.44 * Math.cos(p.pitch)
+    // Delicate slender-rayed Studio Ghibli pure-white meadow daisy (zero heavy grey outlines)
+    const sqY = 0.52 + 0.44 * Math.cos(p.pitch)
     const count = 15
     g.save()
     g.scale(1, sqY)
     g.rotate(p.yaw)
     for (let i = 0; i < count; i++) {
-        const a = (i * TAU) / count + p.jit[i % 24] * 0.045
-        const len = R * (0.94 + p.jit[(i + 9) % 24] * 0.08)
-        const w = len * 0.165
+        const a = (i * TAU) / count + p.jit[i % 24] * 0.065
+        const len = R * (0.9 + p.jit[(i + 9) % 24] * 0.12)
+        const w = len * 0.145
         g.save()
         g.rotate(a)
-        const gr = g.createLinearGradient(0, -R * 0.12, 0, -len)
+        const gr = g.createLinearGradient(0, -R * 0.14, 0, -len)
         gr.addColorStop(0, pal.deep)
-        gr.addColorStop(0.28, pal.tip)
-        gr.addColorStop(0.65, pal.mid)
+        gr.addColorStop(0.22, pal.tip)
+        gr.addColorStop(0.6, pal.mid)
         gr.addColorStop(1, pal.base)
+        g.globalAlpha = 0.92 + (i % 2) * 0.08
         g.fillStyle = gr
         g.beginPath()
         g.moveTo(0, -R * 0.12)
-        g.bezierCurveTo(-w, -len * 0.36, -w * 0.85, -len * 0.82, 0, -len)
-        g.bezierCurveTo(w * 0.85, -len * 0.82, w, -len * 0.36, 0, -R * 0.12)
+        g.bezierCurveTo(-w, -len * 0.34, -w * 0.82, -len * 0.82, 0, -len)
+        g.bezierCurveTo(w * 0.82, -len * 0.82, w, -len * 0.34, 0, -R * 0.12)
         g.closePath()
         g.fill()
-        g.strokeStyle = pal.edge
-        g.lineWidth = Math.max(0.45, R * 0.014)
-        g.stroke()
         g.restore()
     }
     g.restore()
@@ -1001,19 +1038,33 @@ function paintCoreFront(g: CanvasRenderingContext2D, R: number, p: Pose, S: numb
         }
         return
     }
-    // Species 2: California Poppy — golden pollen ring over warm dark stamen crown
+    // Species 2: California Poppy — bold velvety espresso-charcoal center + delicate gold anthers
     if (S === 2) {
-        g.fillStyle = "rgba(254, 243, 199, 0.95)"
-        for (let i = 0; i < 10; i++) {
-            const a = (i * TAU) / 10 + p.jit[i] * 0.2
+        const halo = g.createRadialGradient(0, 0, R * 0.04, 0, 0, R * 0.28)
+        halo.addColorStop(0, "rgba(56, 24, 8, 0.92)")
+        halo.addColorStop(0.58, "rgba(120, 46, 12, 0.56)")
+        halo.addColorStop(1, "rgba(180, 78, 12, 0)")
+        g.fillStyle = halo
+        g.beginPath()
+        g.ellipse(0, 0, R * 0.28, R * 0.24, 0, 0, TAU)
+        g.fill()
+
+        const center = g.createRadialGradient(-R * 0.03, -R * 0.04, 0, 0, 0, R * 0.19)
+        center.addColorStop(0, "rgba(62, 34, 16, 0.98)")
+        center.addColorStop(0.65, "rgba(38, 18, 8, 0.98)")
+        center.addColorStop(1, "rgba(24, 12, 6, 0.95)")
+        g.fillStyle = center
+        g.beginPath()
+        g.ellipse(0, 0, R * 0.185, R * 0.155, 0, 0, TAU)
+        g.fill()
+
+        g.fillStyle = "rgba(253, 224, 71, 0.86)"
+        for (let i = 0; i < 9; i++) {
+            const a = (i * TAU) / 9 + p.jit[i] * 0.25
             g.beginPath()
-            g.arc(Math.cos(a) * R * 0.17, Math.sin(a) * R * 0.14, R * 0.042, 0, TAU)
+            g.arc(Math.cos(a) * R * 0.145, Math.sin(a) * R * 0.12, R * 0.025, 0, TAU)
             g.fill()
         }
-        g.fillStyle = "rgba(124, 45, 18, 0.92)"
-        g.beginPath()
-        g.arc(0, 0, R * 0.1, 0, TAU)
-        g.fill()
         return
     }
     // Species 3: Crisp White Meadow Daisy — raised amber stippled dome disc
@@ -1143,14 +1194,14 @@ function lightCore(g: CanvasRenderingContext2D, R: number, k: number, col: RGBA 
 /* Four harmonious Studio Ghibli daylight botanical species palettes that shift
  * gently toward nocturnal bioluminescent bluebell as `nightK` rises after dusk. */
 const SPECIES_PAL: readonly { pale: RGBA; mid: RGBA; tip: RGBA; deep: RGBA; edge: RGBA }[] = [
-    // 0: Periwinkle-Lavender Lupines (cool soft violet-blue, never neon purple)
-    { pale: [226, 222, 255, 1], mid: [176, 168, 242, 1], tip: [134, 126, 218, 1], deep: [94, 86, 178, 1], edge: [72, 66, 142, 1] },
-    // 1: Airy Blush-Pink Cosmos (delicate pastel rose, never harsh magenta)
-    { pale: [255, 242, 248, 1], mid: [252, 198, 224, 1], tip: [242, 138, 188, 1], deep: [216, 84, 146, 1], edge: [176, 68, 122, 1] },
-    // 2: Sunlit Golden-Marigold California Poppies (warm amber-gold satin)
-    { pale: [254, 244, 168, 1], mid: [251, 196, 48, 1], tip: [244, 152, 16, 1], deep: [210, 92, 10, 1], edge: [158, 66, 10, 1] },
-    // 3: Crisp Pure-White Meadow Daisies (clean snow white + soft cool slate base)
-    { pale: [255, 255, 255, 1], mid: [250, 252, 255, 1], tip: [238, 243, 250, 1], deep: [198, 208, 224, 1], edge: [138, 154, 176, 1] },
+    // 0: Silky Periwinkle-Lavender Lupines (soft pastel lilac-periwinkle, luminous cream tips)
+    { pale: [236, 232, 255, 1], mid: [188, 180, 248, 1], tip: [148, 138, 226, 1], deep: [104, 96, 186, 1], edge: [92, 84, 168, 1] },
+    // 1: Airy Blush-Pink Cosmos (soft painterly sakura-rose with warm cream-blush rims)
+    { pale: [255, 244, 249, 1], mid: [253, 206, 228, 1], tip: [244, 152, 196, 1], deep: [216, 98, 154, 1], edge: [188, 86, 138, 1] },
+    // 2: Sunlit Golden-Amber California Poppies (rich luminous marigold satin)
+    { pale: [255, 246, 178, 1], mid: [252, 204, 58, 1], tip: [244, 154, 16, 1], deep: [204, 88, 8, 1], edge: [164, 68, 10, 1] },
+    // 3: Crisp Pure-White Meadow Daisies (clean sunlit snow white + soft sage-slate base)
+    { pale: [255, 255, 255, 1], mid: [252, 253, 255, 1], tip: [240, 244, 248, 1], deep: [194, 206, 214, 1], edge: [152, 166, 180, 1] },
 ]
 
 function speciesPalette(sp: number, fl: RGBA, vi = 0, nightK = 0): Palette {
@@ -1162,19 +1213,25 @@ function speciesPalette(sp: number, fl: RGBA, vi = 0, nightK = 0): Palette {
     let midC = mix(P.mid, fl, nightBlend * 0.72)
     let paleC = mix(P.pale, [175, 240, 255, 1], nightBlend * 0.55)
     let deepC = mix(P.deep, [12, 34, 112, 1], nightBlend * 0.65)
-    // Subtle per-variant natural variation so blooms read as a living meadow
+    // Five natural painterly per-variant tonal shifts so drifts feel hand-painted
     if (vi === 1) {
-        tipC = mix(tipC, [255, 238, 196, 1], 0.12)
-        midC = mix(midC, [255, 244, 214, 1], 0.1)
+        tipC = mix(tipC, [255, 242, 204, 1], 0.14)
+        midC = mix(midC, [255, 248, 224, 1], 0.12)
     } else if (vi === 2) {
-        tipC = mix(tipC, P.deep, 0.14)
+        tipC = mix(tipC, P.deep, 0.15)
+    } else if (vi === 3) {
+        midC = mix(midC, P.pale, 0.16)
+        tipC = mix(tipC, P.mid, 0.14)
+    } else if (vi === 4) {
+        deepC = mix(deepC, [84, 72, 156, 1], 0.12)
+        tipC = mix(tipC, P.deep, 0.08)
     }
     return {
         base: rgba(paleC),
         mid: rgba(midC),
         tip: rgba(tipC),
         deep: rgba(deepC),
-        edge: rgba(mix(P.edge, [8, 22, 76, 1], nightBlend * 0.6), 0.45),
+        edge: rgba(mix(P.edge, [8, 22, 76, 1], nightBlend * 0.6), 0.2),
     }
 }
 
@@ -1350,17 +1407,41 @@ function gustField(t: number, loop: number, u: number, depth: number) {
 }
 
 /*
- * Species mixing: cohesive ecological drifts — broad fbm bands let lupines,
- * pink cosmos, golden poppies, and white daisies cluster naturally in flowing
- * sweeps rather than uniform confetti noise.
+ * Art-directed painterly drift choreography inspired by Studio Ghibli key art:
+ * - Left midground: airy blush-pink cosmos cloud softly supporting hero copy
+ * - Center midground river: sunlit golden California poppies guiding the eye to the desk
+ * - Center foreground & far right: tall periwinkle-lavender lupine architectural anchors
+ * - Low foreground flanks: crisp white meadow daisies tucked deep in emerald grass
+ * Modulated with multi-octave fbm so every bed melts organically into its neighbors.
  */
 function clusterSpecies(u: number, z: number, seed: number) {
-    const n1 = pfbm(u * 1.15 + 11.7, z * 3.4 + 4.3, seed + 91, 2, 1024)
-    const n2 = pfbm(u * 2.1 + 5.2, z * 6.2 + 8.8, seed + 37, 2, 1024)
-    const pick = n1 * 0.65 + n2 * 0.35
-    if (pick > 0.59) return 1
-    if (pick < 0.41) return 2
-    if (n2 > 0.62) return 3
+    const warpU = (pfbm(u * 1.45 + 9.1, z * 3.8 + 2.7, seed + 91, 2, 1024) - 0.5) * 0.34
+    const warpZ = (pfbm(u * 2.2 + 4.4, z * 5.2 + 7.9, seed + 37, 2, 1024) - 0.5) * 0.12
+    const detail = pfbm(u * 3.1 + 1.8, z * 7.4 + 3.2, seed + 17, 2, 1024)
+    const uw = u + warpU
+    const zw = z + warpZ
+
+    // Low foreground flanks: crisp white meadow daisies tucked into deep emerald grass
+    if (zw > 0.29 && (uw < -0.22 || uw > 0.36) && detail > 0.44) return 3
+
+    // Center-foreground & far-right tall lavender lupine anchors
+    const centerLupine = uw > -0.14 && uw < 0.34 && zw > 0.21
+    const leftLupine = uw > -0.68 && uw < -0.34 && zw > 0.25
+    const rightLupine = uw > 0.46 && zw > 0.08 && detail > 0.38
+    if (centerLupine || leftLupine || rightLupine) return 0
+
+    // Left-midground soft blush-pink cosmos bed rising behind hero typography
+    if (uw < 0.06 && zw < 0.31 && detail > 0.32) return 1
+
+    // Center-to-right sunlit golden California poppy river guiding eye toward the desk
+    if (uw >= -0.24 && uw <= 0.62 && zw < 0.33) {
+        if (detail < 0.68) return 2
+        return uw < 0.15 ? 1 : 0
+    }
+
+    // Distant horizon tapestry balance
+    if (detail > 0.64) return 1
+    if (detail < 0.38) return 2
     return 0
 }
 
@@ -1436,10 +1517,11 @@ function sowFlowers(
         }
     }
     HEROES.forEach(([x, y, r, pitch, lean, blur], i) => {
-        // Keep foreground meadow crisp on both desktop and mobile — skip oversized bokeh blur blobs
-        if (blur > 4) return
-        const Rw = r * PX * fs * (pitch < 20 ? 0.78 : 0.72)
-        const stem = Rw * 2.1
+        const isBokeh = blur > 2.5
+        // Restrained 50mm cinema-lens foreground bokeh along the bottom rim (no giant blobs)
+        const scaleK = isBokeh ? 0.54 : pitch < 20 ? 0.74 : 0.7
+        const Rw = r * PX * fs * scaleK
+        const stem = Rw * (isBokeh ? 1.55 : 2.05)
         const cu = (x - 282) * PX
         const cv = y * PX + dy
         const z = cv + stem - (0.5 + dy)
@@ -1452,13 +1534,13 @@ function sowFlowers(
             pose: i,
             kind: 0,
             hero: i,
-            blur: Math.min(0.18, blur / Math.max(1, r)),
+            blur: isBokeh ? 0.55 : Math.min(0.18, blur / Math.max(1, r)),
             z,
             xn: cu / 1.5 + 0.5,
             depth: clamp(z / 0.55),
             gph: hash(i, 3, 9) * TAU,
             gper: hash(i, 5, 9) < 0.5 ? 1 : 0.5,
-            alpha: 0.96,
+            alpha: isBokeh ? 0.86 : 0.96,
             bend: hash(i, 7, 9) - 0.5,
         })
     })
@@ -2716,7 +2798,6 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
         let vigGrad: CanvasGradient | null = null
         let vigKey = ""
         let tiltCss = ""
-        let palette: Palette | null = null
         const back = makeCanvas(1, 1)
         const bctx = ctx2d(back)
         let backAge = 0,
@@ -2900,8 +2981,6 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             const sk = [v.flowerColor, adv.squash, adv.defocus, v.glow, adv.glowSize, nightStep].join("|")
             const atlasMissing = !spriteAtlas || spriteAtlas.width === 0 || spriteAtlas.height === 0 || !variants.length
             if (sk !== spriteKey || atlasMissing) {
-                palette = speciesPalette(0, fl, 0, nightStep)
-
                 const sq = clamp(adv.squash / 100, 0.15, 0.97)
                 const R = rng(adv.seed * 41 + 3)
                 const blurK = adv.defocus / 7
@@ -3174,19 +3253,23 @@ function __OriginkitBase_BluebellPass(props: BluebellPassProps) {
             const blurK = valsRef.current.advanced.defocus / 7
             const fs = valsRef.current.scale / 100
             const kk = Math.pow(2, sc / 4)
-            heroSpr = HEROES.map(([, , r, pitch, , blur], i) => {
-                const Rdev = r * PX * fs * (pitch < 20 ? 1.25 : 1.12) * kk
-                const rs = Math.min(blur > 0 ? 92 : 120, Math.max(16, Rdev))
+            const vCur = valsRef.current
+            const flCur = parseColor(vCur.flowerColor, [4, 104, 251, 1])
+            const nightCur = Math.round(clamp(vCur.advanced.night / 100, 0, 1) * 5) / 5
+            heroSpr = HEROES.map(([x, y, r, pitch, , blur], i) => {
+                const isBokeh = blur > 2.5
+                const Rdev = r * PX * fs * (isBokeh ? 0.72 : 1.05) * kk
+                const rs = Math.min(isBokeh ? 68 : 108, Math.max(18, Rdev))
                 const R = rng(1000 + i * 17)
-                const pose = makePose(R, pitch * DEG, 78 * DEG)
-                pose.width = 0.3
-                if (pitch < 20) {
-                    pose.fan = 2.1
-                    pose.petals = 5
-                    pose.width = 0.25
-                    pose.curl = -0.1
-                }
-                return flowerSprite(rs, pose, palette as Palette, ((blur * blurK) / r) * rs)
+                // Art-direct each hero & bottom bokeh bloom to match the meadow's 4-species drifts
+                const cu = (x - 282) * PX
+                const cz = Math.max(0.05, y * PX - 0.5)
+                const sp = isBokeh ? ([0, 2, 1] as const)[i % 3] : clusterSpecies(cu, cz, vCur.advanced.seed | 0)
+                const palH = speciesPalette(sp, flCur, i % POSES_PER_SPECIES, nightCur)
+                const pose = makePose(R, Math.max(24, pitch) * DEG, 78 * DEG, sp)
+                pose.fan = 0
+                const blurPx = isBokeh ? Math.min(7.5, Math.max(3.6, blur * 1.15 * blurK)) : ((blur * blurK) / r) * rs
+                return flowerSprite(rs, pose, palH, blurPx)
             })
             const nextHeroAtlas = packAtlas(heroSpr)
             deferReleaseCanvas(heroAtlas)

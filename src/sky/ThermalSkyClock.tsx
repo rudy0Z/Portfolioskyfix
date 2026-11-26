@@ -233,25 +233,34 @@ export function ThermalSkyClock({
     return () => el.removeEventListener("wheel", onWheel);
   }, [isExpanded]);
 
-  // Paint spring-interpolated 68-tick 180° chromatic arc + comet orb directly to SVG DOM
+  // Paint spring-interpolated 68-tick 180° luminous comet-trail arc + orb directly to SVG DOM
   const paintArcAt = useCallback((angDeg: number, dayFactor: number) => {
     const activeU = (angDeg - ANGLE_START) / (ANGLE_END - ANGLE_START);
-    const r = Math.round(255 + (18 - 255) * dayFactor);
-    const g = Math.round(255 + (28 - 255) * dayFactor);
-    const b = Math.round(255 + (45 - 255) * dayFactor);
-    const inactiveStroke = `rgba(${r}, ${g}, ${b}, 0.16)`;
-    const majorInactive = `rgba(${r}, ${g}, ${b}, 0.27)`;
+    const r = Math.round(255 + (14 - 255) * dayFactor);
+    const g = Math.round(255 + (24 - 255) * dayFactor);
+    const b = Math.round(255 + (42 - 255) * dayFactor);
+    const quietStroke = `rgba(${r}, ${g}, ${b}, ${dayFactor > 0.5 ? 0.14 : 0.17})`;
+    const quietMajor = `rgba(${r}, ${g}, ${b}, ${dayFactor > 0.5 ? 0.28 : 0.30})`;
+    const TRAIL_SPAN = 0.34; // ~8 hours of soft luminous wake behind active hour
 
     for (let i = 0; i < TICK_COUNT; i++) {
       const line = tickRefs.current[i];
       if (!line) continue;
       const tk = TICK_ANGLES[i];
-      const dist = Math.abs(tk.u - activeU);
-      const wave = Math.exp(-(dist * dist) / 0.0016);
-      const passed = tk.u <= activeU + 0.004;
+      const delta = activeU - tk.u; // positive = behind orb, negative = ahead
+      const absDist = Math.abs(delta);
+      const wave = Math.exp(-(absDist * absDist) / 0.0022);
 
-      const innerR = ARC_R - (tk.major ? 14 : 9) - wave * 4;
-      const outerR = ARC_R + (tk.major ? 3.5 : 0) + wave * 8.5;
+      // Luminous comet-trail falloff strictly behind the active hour
+      let trail = 0;
+      if (delta >= -0.014 && delta <= TRAIL_SPAN) {
+        const norm = Math.max(0, delta) / TRAIL_SPAN;
+        trail = Math.pow(1 - norm, 2.15);
+      }
+      const lit = Math.max(wave, trail * 0.92);
+
+      const innerR = ARC_R - (tk.major ? 12.5 : 7.5) - wave * 3.5;
+      const outerR = ARC_R + (tk.major ? 4.5 : 0.5) + wave * 10.5 + trail * 2.2;
       const rad = (tk.angle - 90) * DEG_TO_RAD;
       const c = Math.cos(rad);
       const s = Math.sin(rad);
@@ -261,20 +270,26 @@ export function ThermalSkyClock({
       line.setAttribute("x2", (CX + c * outerR).toFixed(2));
       line.setAttribute("y2", (CY + s * outerR).toFixed(2));
 
-      if (passed || wave > 0.35) {
+      if (lit > 0.06) {
         line.setAttribute("stroke", tk.color);
-        line.setAttribute("stroke-opacity", (0.68 + wave * 0.32).toFixed(2));
-        line.setAttribute("stroke-width", (1.7 + wave * 1.25).toFixed(2));
+        line.setAttribute("stroke-opacity", Math.min(1, 0.22 + lit * 0.78).toFixed(2));
+        line.setAttribute("stroke-width", (1.45 + trail * 0.65 + wave * 1.35).toFixed(2));
+        if (wave > 0.38) {
+          line.setAttribute("filter", "url(#pdial-tick-glow)");
+        } else {
+          line.removeAttribute("filter");
+        }
       } else {
-        line.setAttribute("stroke", tk.major ? majorInactive : inactiveStroke);
+        line.setAttribute("stroke", tk.major ? quietMajor : quietStroke);
         line.setAttribute("stroke-opacity", "1");
-        line.setAttribute("stroke-width", tk.major ? "1.65" : "1.15");
+        line.setAttribute("stroke-width", tk.major ? "1.6" : "1.1");
+        line.removeAttribute("filter");
       }
     }
 
-    // Position glowing sun/moon orb cleanly along the inner 180° orbital track
+    // Position glowing celestial orb cleanly ON the arc ridge so interior digits never collide
     const orbRad = (angDeg - 90) * DEG_TO_RAD;
-    const orbTrackR = ARC_R - 23;
+    const orbTrackR = ARC_R + 1.5;
     const ox = CX + Math.cos(orbRad) * orbTrackR;
     const oy = CY + Math.sin(orbRad) * orbTrackR;
     if (orbGroupRef.current) {
@@ -380,7 +395,12 @@ export function ThermalSkyClock({
     const x1 = CX - ARC_R - 14;
     const x2 = CX + ARC_R + 14;
     const y = CY + 13;
-    return `M ${x1.toFixed(1)} ${y} Q ${CX} ${y - 14} ${x2.toFixed(1)} ${y}`;
+    return `M ${x1.toFixed(1)} ${y} Q ${CX} ${y - 12} ${x2.toFixed(1)} ${y}`;
+  }, []);
+
+  const guideArcPath = useMemo(() => {
+    const r = ARC_R - 16;
+    return `M ${(CX - r).toFixed(1)} ${CY} A ${r} ${r} 0 0 1 ${(CX + r).toFixed(1)} ${CY}`;
   }, []);
 
   return (
@@ -442,7 +462,7 @@ export function ThermalSkyClock({
         </button>
       )}
 
-      {/* Adaptive PinUI-Inspired Sculptural Squircle Popover */}
+      {/* Borderless Sculptural Atmospheric Squircle Popover */}
       {isExpanded && (
         <div
           ref={popoverRef}
@@ -454,13 +474,8 @@ export function ThermalSkyClock({
           aria-label="Solar Horizon Dial"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Exterior atmospheric halo */}
-          <div className="pdial__halo" aria-hidden="true" />
-          <div className="pdial__bloom" aria-hidden="true" />
-
-          {/* Main hardware squircle enclosure */}
+          {/* Main borderless atmospheric enclosure */}
           <div className="pdial__device">
-            <div className="pdial__rim" aria-hidden="true" />
             <div className="pdial__walls" aria-hidden="true" />
             <div className="pdial__wash" aria-hidden="true" />
 
@@ -503,7 +518,7 @@ export function ThermalSkyClock({
             {/* Kinetic Solar Phase Label */}
             <PhaseTitle label={phase.label} />
 
-            {/* 180° Half-Dome Chromatic Comb + Nestled Digital Time Inside the Dome */}
+            {/* 180° Half-Dome Luminous Comet-Trail Dial + Nestled Digital Time */}
             <div className="pdial__arc-stage">
               <svg
                 ref={svgRef}
@@ -522,7 +537,32 @@ export function ThermalSkyClock({
                 onPointerCancel={handlePointerUp}
                 onKeyDown={handleKeyDown}
               >
-                {/* 68 Spring-Responsive Chromatic Ticks */}
+                <defs>
+                  <filter id="pdial-tick-glow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="2.4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <radialGradient id="pdial-orb-halo" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor={atmo.orbColor} stopOpacity="0.62" />
+                    <stop offset="52%" stopColor={atmo.orbColor} stopOpacity="0.18" />
+                    <stop offset="100%" stopColor={atmo.orbColor} stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+
+                {/* Subtle recessed orbital guide track */}
+                <path
+                  d={guideArcPath}
+                  fill="none"
+                  className="pdial__guide-arc"
+                  strokeWidth="1"
+                  strokeDasharray="1.5 5.5"
+                  strokeLinecap="round"
+                />
+
+                {/* 68 Spring-Responsive Comet-Trail Chromatic Ticks */}
                 <g aria-hidden="true">
                   {TICK_ANGLES.map((_, idx) => (
                     <line
@@ -544,26 +584,27 @@ export function ThermalSkyClock({
                   d={horizonPath}
                   fill="none"
                   className="pdial__horizon-line"
-                  strokeWidth="1.25"
+                  strokeWidth="1.15"
                   strokeLinecap="round"
                 />
 
-                {/* Glowing Sun / Moon Orbital Thumb */}
+                {/* Glowing Sun / Moon Orbital Thumb riding cleanly on the arc ridge */}
                 <g ref={orbGroupRef} className="pdial__orb-group">
-                  <circle cx="0" cy="0" r="17" fill={atmo.orbColor} opacity="0.24" />
+                  <circle cx="0" cy="0" r="19" fill="url(#pdial-orb-halo)" />
                   <circle
                     cx="0"
                     cy="0"
-                    r="9.5"
+                    r="7.2"
                     fill={atmo.orbColor}
-                    stroke="#ffffff"
-                    strokeWidth="2.2"
+                    stroke={atmo.orbCore}
+                    strokeOpacity="0.88"
+                    strokeWidth="1.4"
                   />
-                  <circle cx="0" cy="0" r="3.2" fill={atmo.orbCore} />
+                  <circle cx="0" cy="0" r="2.8" fill={atmo.orbCore} />
                 </g>
               </svg>
 
-              {/* Spring-Rolling Split Digital Readout nestled inside the 180° dome */}
+              {/* Spring-Rolling Split Digital Readout nestled cleanly inside the 180° dome */}
               <div className="pdial__readout" aria-label={`Selected solar time ${formatted}`}>
                 {formatted.split("").map((ch, idx) => (
                   <RollingDigit key={idx} value={ch} />
@@ -571,7 +612,7 @@ export function ThermalSkyClock({
               </div>
             </div>
 
-            {/* Collapsible Quiet Sky Options Drawer (collapsed by default) */}
+            {/* Smooth Animated Collapsible Quiet Sky Options Accordion */}
             <div className={`pdial__drawer ${optionsOpen ? "is-open" : ""}`}>
               <button
                 type="button"
@@ -592,54 +633,59 @@ export function ThermalSkyClock({
                 </svg>
               </button>
 
-              {optionsOpen && (
-                <div className="pdial__drawer-body">
-                  {/* Quick Solar Jumps */}
-                  <div className="pdial__jumps" role="group" aria-label="Quick solar jumps">
-                    {[
-                      { label: "Dawn", hr: 6.25 },
-                      { label: "Noon", hr: 12.5 },
-                      { label: "Golden", hr: 16.5 },
-                      { label: "Night", hr: 23.0 },
-                    ].map((p) => {
-                      const active = Math.abs(t - p.hr) < 0.55;
-                      return (
-                        <button
-                          key={p.label}
-                          type="button"
-                          className={`pdial__jump ${active ? "is-active" : ""}`}
-                          onClick={() => glideSkyTime(p.hr, { duration: 560 })}
-                        >
-                          {p.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="pdial__drawer-collapse" aria-hidden={!optionsOpen}>
+                <div className="pdial__drawer-inner">
+                  <div className="pdial__drawer-body">
+                    {/* Quick Solar Jumps */}
+                    <div className="pdial__jumps" role="group" aria-label="Quick solar jumps">
+                      {[
+                        { label: "Dawn", hr: 6.25 },
+                        { label: "Noon", hr: 12.5 },
+                        { label: "Golden", hr: 16.5 },
+                        { label: "Night", hr: 23.0 },
+                      ].map((p) => {
+                        const active = Math.abs(t - p.hr) < 0.55;
+                        return (
+                          <button
+                            key={p.label}
+                            type="button"
+                            tabIndex={optionsOpen ? 0 : -1}
+                            className={`pdial__jump ${active ? "is-active" : ""}`}
+                            onClick={() => glideSkyTime(p.hr, { duration: 560 })}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                  {/* Atmosphere Toggles */}
-                  <div className="pdial__toggles" role="group" aria-label="Atmosphere controls">
-                    <button
-                      type="button"
-                      className={`pdial__toggle ${cloudDrift ? "is-on" : ""}`}
-                      aria-pressed={cloudDrift}
-                      onClick={() => onToggleCloudDrift?.()}
-                    >
-                      <span>Cloud drift</span>
-                      <span className="pdial__switch" aria-hidden="true" />
-                    </button>
+                    {/* Atmosphere Toggles */}
+                    <div className="pdial__toggles" role="group" aria-label="Atmosphere controls">
+                      <button
+                        type="button"
+                        tabIndex={optionsOpen ? 0 : -1}
+                        className={`pdial__toggle ${cloudDrift ? "is-on" : ""}`}
+                        aria-pressed={cloudDrift}
+                        onClick={() => onToggleCloudDrift?.()}
+                      >
+                        <span>Cloud drift</span>
+                        <span className="pdial__switch" aria-hidden="true" />
+                      </button>
 
-                    <button
-                      type="button"
-                      className={`pdial__toggle ${nightStars ? "is-on" : ""}`}
-                      aria-pressed={nightStars}
-                      onClick={() => onToggleNightStars?.()}
-                    >
-                      <span>Night preview</span>
-                      <span className="pdial__switch" aria-hidden="true" />
-                    </button>
+                      <button
+                        type="button"
+                        tabIndex={optionsOpen ? 0 : -1}
+                        className={`pdial__toggle ${nightStars ? "is-on" : ""}`}
+                        aria-pressed={nightStars}
+                        onClick={() => onToggleNightStars?.()}
+                      >
+                        <span>Night preview</span>
+                        <span className="pdial__switch" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

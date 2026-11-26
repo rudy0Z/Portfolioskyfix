@@ -11,10 +11,10 @@ export const SUNDIAL_GEOM = {
 
 export const PIN_DIAL_GEOM = {
   vbW: 360,
-  vbH: 186,
+  vbH: 194,
   cx: 180,
-  cy: 164,
-  radius: 138,
+  cy: 168,
+  radius: 132,
   tickCount: 68,
   angleStart: -90,
   angleEnd: 90,

@@ -3575,10 +3575,13 @@ html[data-intro="wait"] .site-brand {
   height: 34px;
   padding: 0 12px 0 10px;
   border-radius: 999px;
-  border: 1px solid var(--ui-pill-border, rgba(15, 23, 42, 0.14));
+  border: none;
   background: var(--ui-nav-bg, rgba(252, 250, 246, 0.58));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 0 var(--ui-nav-inset, rgba(255, 255, 255, 0.28)),
+    0 2px 10px rgba(4, 8, 20, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: inherit;
   font-family: var(--font-mono);
   font-size: 0.76rem;
@@ -3588,7 +3591,7 @@ html[data-intro="wait"] .site-brand {
   white-space: nowrap;
   transition:
     background-color 320ms ease,
-    border-color 320ms ease,
+    box-shadow 320ms ease,
     color 320ms ease,
     transform 150ms ease-out;
 }
@@ -3599,7 +3602,9 @@ html[data-intro="wait"] .site-brand {
 
 .pdial-trigger.is-active {
   background: var(--ui-nav-bg-scrolled, rgba(252, 250, 246, 0.92));
-  border-color: var(--ui-ink-52, rgba(15, 23, 42, 0.28));
+  box-shadow:
+    inset 0 1px 0 var(--ui-nav-inset, rgba(255, 255, 255, 0.36)),
+    0 4px 16px rgba(4, 8, 20, 0.24);
 }
 
 @media (hover: hover) {
@@ -3643,7 +3648,7 @@ html[data-intro="wait"] .site-brand {
   z-index: 70;
   color: var(--ui-ink, #0e1626);
   user-select: none;
-  animation: pdialPopIn 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pdialPopIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: color 780ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -3662,7 +3667,7 @@ html[data-intro="wait"] .site-brand {
 @keyframes pdialPopIn {
   from {
     opacity: 0;
-    transform: translate3d(0, -8px, 0) scale(0.96);
+    transform: translate3d(0, -8px, 0) scale(0.965);
   }
   to {
     opacity: 1;
@@ -3670,70 +3675,22 @@ html[data-intro="wait"] .site-brand {
   }
 }
 
-/* Zero-blur feathered exterior halo & radiant PinUI horizon bloom (compositor-friendly) */
-.pdial__halo {
-  position: absolute;
-  inset: -26px -22px -30px;
-  border-radius: 52px;
-  background: radial-gradient(
-    74% 62% at 50% 88%,
-    color-mix(in srgb, var(--pdial-c1, #f59e0b) 36%, transparent) 0%,
-    color-mix(in srgb, var(--pdial-c2, #fb923c) 18%, transparent) 44%,
-    transparent 74%
-  );
-  pointer-events: none;
-}
-
-.pdial__bloom {
-  position: absolute;
-  left: 4%;
-  right: 4%;
-  bottom: -24px;
-  height: 54px;
-  border-radius: 999px;
-  background: radial-gradient(
-    68% 64% at 50% 42%,
-    color-mix(in srgb, var(--pdial-c1, #ff9a52) 48%, transparent) 0%,
-    transparent 74%
-  );
-  pointer-events: none;
-}
-
-/* Continuous Alabaster ↔ Obsidian Hardware Enclosure */
+/* Continuous Borderless Alabaster ↔ Obsidian Atmospheric Enclosure */
 .pdial__device {
   position: relative;
   border-radius: 28px;
   overflow: hidden;
-  padding: 15px 18px 13px;
+  padding: 16px 18px 12px;
   background: linear-gradient(
     180deg,
     var(--ui-dial-top, #fcfbf8) 0%,
     var(--ui-dial-bot, #f5f2eb) 100%
   );
   box-shadow:
-    0 34px 72px -22px rgba(6, 10, 22, 0.44),
-    0 12px 26px -12px rgba(6, 10, 22, 0.22),
-    inset 0 1px 0 var(--ui-nav-inset, rgba(255, 255, 255, 0.94));
-  transition: box-shadow 280ms ease, color 780ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Continuous Gradient Hairline Rim Bevel with strong bottom thermal edge */
-.pdial__rim {
-  position: absolute;
-  inset: 0;
-  border-radius: 28px;
-  padding: 1.5px;
-  background: linear-gradient(
-    180deg,
-    var(--ui-dial-rim-top, rgba(255, 255, 255, 0.95)) 0%,
-    var(--ui-dial-rim-mid, rgba(15, 23, 42, 0.08)) 40%,
-    color-mix(in srgb, var(--pdial-c1, #f59e0b) 92%, var(--ui-dial-rim-mid, rgba(15, 23, 42, 0.14))) 100%
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 4;
+    0 32px 68px -18px rgba(4, 8, 22, 0.52),
+    0 18px 42px -18px color-mix(in srgb, var(--pdial-c1, #3b82f6) 44%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--ui-nav-inset, rgba(255, 255, 255, 0.7)) 52%, transparent);
+  transition: box-shadow 360ms ease, color 780ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pdial__walls {
@@ -3741,8 +3698,8 @@ html[data-intro="wait"] .site-brand {
   inset: 0;
   border-radius: 28px;
   box-shadow:
-    inset 0 -32px 48px -14px color-mix(in srgb, var(--pdial-c1, #f59e0b) 72%, transparent),
-    inset 0 -10px 24px -6px color-mix(in srgb, var(--pdial-c2, #fb923c) 64%, transparent);
+    inset 0 -30px 46px -14px color-mix(in srgb, var(--pdial-c1, #f59e0b) 72%, transparent),
+    inset 0 -10px 24px -6px color-mix(in srgb, var(--pdial-c2, #fb923c) 58%, transparent);
   pointer-events: none;
   z-index: 2;
 }
@@ -3800,7 +3757,7 @@ html[data-intro="wait"] .site-brand {
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: var(--ui-ink-66, rgba(14, 22, 38, 0.62));
   cursor: pointer;
@@ -3850,7 +3807,7 @@ html[data-intro="wait"] .site-brand {
 .pdial__arc-stage {
   position: relative;
   z-index: 3;
-  margin: 0 -4px 2px;
+  margin: 0 -6px 0;
 }
 
 .pdial__svg {
@@ -3871,20 +3828,27 @@ html[data-intro="wait"] .site-brand {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--pdial-orb, #f59e0b) 65%, transparent);
 }
 
+.pdial__guide-arc {
+  stroke: var(--ui-hairline, rgba(15, 23, 42, 0.12));
+  opacity: 0.68;
+  transition: stroke 780ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .pdial__horizon-line {
-  stroke: var(--ui-hairline, rgba(15, 23, 42, 0.16));
+  stroke: var(--ui-hairline, rgba(15, 23, 42, 0.14));
+  opacity: 0.65;
   transition: stroke 780ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pdial__orb-group {
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.26));
 }
 
 /* Spring-Rolling Split Digital Readout nestled cleanly INSIDE the 180° half-dome */
 .pdial__readout {
   position: absolute;
   left: 50%;
-  bottom: 13%;
+  bottom: 16%;
   transform: translateX(-50%);
   z-index: 4;
   display: flex;
@@ -3892,7 +3856,7 @@ html[data-intro="wait"] .site-brand {
   justify-content: center;
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 2.38rem;
+  font-size: 2.34rem;
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -3930,14 +3894,12 @@ html[data-intro="wait"] .site-brand {
   transition: color 780ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Collapsible Quiet `Sky options` Drawer */
+/* Smooth Animated Borderless `Sky options` Accordion */
 .pdial__drawer {
   position: relative;
   z-index: 3;
-  margin-top: 2px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ui-hairline, rgba(15, 23, 42, 0.1));
-  transition: border-color 780ms cubic-bezier(0.22, 1, 0.36, 1);
+  margin-top: 4px;
+  padding-top: 2px;
 }
 
 .pdial__drawer-toggle {
@@ -3945,34 +3907,71 @@ html[data-intro="wait"] .site-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 4px;
+  padding: 7px 8px;
   border: none;
+  border-radius: 12px;
   background: transparent;
-  color: var(--ui-ink, #0e1626);
+  color: var(--ui-ink-82, rgba(14, 22, 38, 0.84));
   font-family: var(--font-sans);
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 220ms ease;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+@media (hover: hover) {
+  .pdial__drawer-toggle:hover {
+    background: var(--ui-pill-bg, rgba(15, 23, 42, 0.06));
+    color: var(--ui-ink, #0e1626);
+  }
 }
 
 .pdial__drawer-chev {
   width: 12px;
   height: 12px;
   opacity: 0.68;
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pdial__drawer.is-open .pdial__drawer-chev {
   transform: rotate(180deg);
 }
 
+.pdial__drawer-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pdial__drawer.is-open .pdial__drawer-collapse {
+  grid-template-rows: 1fr;
+}
+
+.pdial__drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .pdial__drawer-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  padding-bottom: 4px;
+  padding: 8px 2px 4px;
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+  filter: blur(4px);
+  transition:
+    opacity 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pdial__drawer.is-open .pdial__drawer-body {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
 }
 
 .pdial__jumps {
@@ -3982,10 +3981,10 @@ html[data-intro="wait"] .site-brand {
 }
 
 .pdial__jump {
-  padding: 6px 4px;
+  padding: 7px 4px;
   border-radius: 10px;
-  border: 1px solid var(--ui-pill-border, rgba(15, 23, 42, 0.14));
-  background: var(--ui-pill-bg, rgba(15, 23, 42, 0.06));
+  border: none;
+  background: var(--ui-pill-bg, rgba(15, 23, 42, 0.07));
   color: var(--ui-ink, #0e1626);
   font-family: var(--font-sans);
   font-size: 0.72rem;
@@ -3993,7 +3992,6 @@ html[data-intro="wait"] .site-brand {
   cursor: pointer;
   transition:
     background-color 220ms ease,
-    border-color 220ms ease,
     color 220ms ease,
     transform 150ms ease-out;
 }
@@ -4004,7 +4002,6 @@ html[data-intro="wait"] .site-brand {
 
 .pdial__jump.is-active {
   background: var(--ui-cta-bg, #0f172a);
-  border-color: var(--ui-cta-bg, #0f172a);
   color: var(--ui-cta-ink, #fbfaf6);
 }
 
@@ -4018,10 +4015,10 @@ html[data-intro="wait"] .site-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border-radius: 10px;
-  border: 1px solid var(--ui-hairline, rgba(15, 23, 42, 0.11));
-  background: var(--ui-pill-bg, rgba(15, 23, 42, 0.05));
+  border: none;
+  background: var(--ui-pill-bg, rgba(15, 23, 42, 0.06));
   color: inherit;
   font-family: var(--font-sans);
   font-size: 0.75rem;
@@ -4029,7 +4026,6 @@ html[data-intro="wait"] .site-brand {
   cursor: pointer;
   transition:
     background-color 220ms ease,
-    border-color 220ms ease,
     transform 150ms ease-out;
 }
 
@@ -4065,6 +4061,7 @@ html[data-intro="wait"] .site-brand {
 
 .pdial__toggle.is-on .pdial__switch::after {
   transform: translateX(13px);
+  background: var(--ui-cta-ink, #ffffff);
 }
 
 /* ── 4. Restrained Open Editorial Hero & Cloud-Mist Horizon Curtain ───────── */
